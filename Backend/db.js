@@ -1,6 +1,6 @@
 // db.js
-const sql = require('mssql');
-const config = require('./config');
+import sql from 'mssql';
+import config from './config.js';
 
 const dbConfig = {
   user: config.sql.user,
@@ -23,7 +23,7 @@ pool.on('error', (err) => {
   console.error('SQL Server connection pool error:', err);
 });
 
-module.exports = {
+export {
   sql,
   poolConnect,
   pool
