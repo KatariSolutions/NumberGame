@@ -4,10 +4,10 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 
 import logger from './middleware/logger.js';
-import authRoutes from './routes/auth.js';
-import { verifyToken } from './middleware/auth.js';
+import authRouter from './routes/auth.js';
+import userRouter from './routes/user.js';
+import { verifyToken } from './middleware/authToken.js';
 
-import { sql, poolConnect } from './db.js';
 import config from './config.js'
 
 const app = express();
@@ -27,7 +27,10 @@ app.use('/welcome', (req, res) => {
 });
 
 // Auth Routes
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authRouter);
+
+//user Routes
+app.use("/api/user", verifyToken, userRouter);
 
 
 let port = config.port || 8080;
