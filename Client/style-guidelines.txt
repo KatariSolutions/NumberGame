@@ -1,0 +1,26 @@
+Font Sizes
+----------
+small : 12px
+regular : 16px
+large : 24px
+x-large : 32px
+xx-large : 64px
+
+
+Colors
+-----
+font-primary : #FCE446
+font-secondary: #965205
+font-light: #ffffff
+font-dark: #111111
+
+bg-gradient : linear-gradient(#965205,EFA80C)
+bg-primary : #EFA80C
+bg-secondary : #965205
+bg-light: #ffffff
+bg-dark: #111111
+bg-red-1 : #E13105
+bg-red-2 : #F35831
+bg-green-1 : #00AC3C
+bg-green-2 : #00D34A
+

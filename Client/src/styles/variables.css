@@ -1,0 +1,78 @@
+:root {
+    /* Base font family */
+    --font-family-primary : 'Inter';
+    --font-family-secondary : 'Joti One';
+
+    /* Variable font sizes */
+    --font-sm: 12px;
+    --font-md: 16px;
+    --font-l: 24px;
+    --font-xl: 32px;
+    --font-xxl: 64px;
+
+    /* Variable font weights */
+    --wt-bold: 700;
+    --wt-medium: 500;
+    --wt-light: 300;
+    --wt-thin: 100;
+
+    /* Brand color schemes */
+    --font-primary : #FCE446;
+    --font-secondary: #965205;
+    --font-light: #ffffff;
+    --font-dark: #111111;
+
+    /* Background Colors */
+    --bg-gradient : linear-gradient(#965205,#EFA80C);
+    --bg-primary : #EFA80C;
+    --bg-secondary : #965205;
+    --bg-light: #ffffff;
+    --bg-dark: #111111;
+    --bg-red-1 : #E13105;
+    --bg-red-2 : #F35831;
+    --bg-crimson : #E13105;
+    --bg-green-1 : #00AC3C;
+    --bg-green-2 : #00D34A;
+
+    /* Grays */
+    --white: #fff;
+    --tint-gray-100: #f3f6f9;
+    --tint-gray-200: #eff2f7;
+    --tint-gray-300: #e9ebec;
+    --tint-gray-400: #ced4da;
+    --tint-gray-500: #adb5bd;
+    --tint-gray-600: #878a99;
+    --tint-gray-700: #495057;
+    --tint-gray-800: #343a40;
+    --tint-gray-900: #212529;
+    --black: #000;
+
+    /* Other colors */
+    --tint-blue: #3577f1;
+    --tint-indigo: #405189;
+    --tint-purple: #6559cc;
+    --tint-pink: #f672a7;
+    --tint-red: #f06548;
+    --tint-dark-red: #e52f2f;
+    --tint-orange: #f1963b;
+    --tint-yellow: #f7b84b;
+    --tint-green: #0ab39c;
+    --tint-teal: #02a8b5;
+    --tint-cyan: #299cdb;
+
+    /* Shadows */
+    --scrumb-shadow : rgba(0, 0, 0, 0.02) 0px 1px 3px 0px, rgba(27, 31, 35, 0.15) 0px 0px 0px 1px;
+    --header-shadow : rgba(27, 31, 35, 0.04) 0px 1px 0px inset, rgba(255, 255, 255, 0.25) 0px 1px 0px inset;
+    --sidebar-shadow : rgba(0, 0, 0, 0.1) 0px 4px 6px -1px, rgba(0, 0, 0, 0.06) 0px 2px 4px -1px;
+
+    --border-bottom : 1px solid var(--tint-gray-300);
+
+    /* Links */
+    --link-color: var(--tint-blue);
+    --link-decoration: underline;
+    --link-shade-percentage: 20%;
+    --link-hover-color: var(--tint-indigo);
+    --link-hover-decoration: none; /* fixed */
+    --stretched-link-pseudo-element: after;
+    --stretched-link-z-index: 1;
+}

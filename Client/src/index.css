@@ -1,0 +1,52 @@
+@import url('./styles/variables.css');
+@import url('./styles/global.css');
+
+*{
+  /* Deafults for every element in the UI */
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  transition: .1s all ease-in-out;
+  outline: none;
+}
+
+body {
+  min-height: 100vh;
+
+  margin: 0;
+  background: var(--bg-gradient);
+  font-family: var(--font-family-primary);
+  font-optical-sizing: auto;
+}
+
+/*
+.joti-one-regular {
+  font-family: "Joti One", serif;
+  font-weight: 400;
+  font-style: normal;
+}
+*/
+
+a{
+  color: var(--link-color);
+  text-decoration: var(--link-decoration);
+
+}
+a:hover{
+  color: var(--link-hover-color);
+  text-decoration: var(--link-hover-decoration);
+}
+
+input::placeholder{
+  color: transparent;
+}
+input:focus::placeholder{
+  color: var(--tint-gray-500);
+}
+
+select::placeholder{
+  color: transparent;
+}
+select:focus::placeholder{
+  color: var(--tint-gray-500);
+}
