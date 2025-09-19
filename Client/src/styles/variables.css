@@ -11,6 +11,7 @@
     --font-xxl: 64px;
 
     /* Variable font weights */
+    --wt-boldx: 900;
     --wt-bold: 700;
     --wt-medium: 500;
     --wt-light: 300;

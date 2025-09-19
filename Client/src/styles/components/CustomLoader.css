@@ -1,7 +1,13 @@
 
-.logo{
+.loader-flex-box img{
     width: 300px;
     height: 200px;
+}
+@media (max-width:600px){
+    .loader-flex-box img{
+        width: 240px;
+        height: 160px;
+    }
 }
 
 .loader{

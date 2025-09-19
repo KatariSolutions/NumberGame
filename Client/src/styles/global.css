@@ -1,5 +1,6 @@
 @import url('./variables.css');
 @import url('./components/CustomLoader.css');
+@import url('./auth/index.css');
 
 /* your other styles */
 body {
