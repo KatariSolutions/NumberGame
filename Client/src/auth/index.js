@@ -4,6 +4,7 @@ import Login from './Login';
 
 import Register from './Register';
 import ForgotPassword from './ForgotPassword';
+import VerifyOTP from './VerifyOTP';
 
 function AuthLayout() {
     return (
@@ -13,6 +14,7 @@ function AuthLayout() {
                 <Route path="/login" element={<Login />}></Route>
                 <Route path="/register" element={<Register />}></Route>
                 <Route path="/forgot-password" element={<ForgotPassword />}></Route>
+                <Route path="/verify-otp" element={<VerifyOTP />}></Route>
             </Routes>
         </div>
     )

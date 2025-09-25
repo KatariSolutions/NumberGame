@@ -16,6 +16,11 @@ class Validations {
     const phoneRegex = /^[6-9]\d{9}$/;
     return phoneRegex.test(phone);
   }
+
+  OTPValidation(otp) {
+    const otpRegex = /^[0-9]{6}$/;
+    return otpRegex.test(otp);
+  }
 }
 
 export default Validations;

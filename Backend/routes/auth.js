@@ -13,7 +13,7 @@ const authRouter = express.Router();
 
 authRouter.post("/register", async (req, res) => {
   try {
-    await poolConnect; // ✅ NO parentheses
+    await poolConnect; 
 
     const { email, password, phone } = req.body;
 
@@ -23,7 +23,7 @@ authRouter.post("/register", async (req, res) => {
       .query("SELECT user_id FROM Users WHERE email = @email");
 
     if (checkEmail.recordset.length > 0) {
-      return res.status(409).json({ error: "Email already exists" });
+      return res.status(209).json({ status : 209, error: "Email already exists" });
     }
 
     // 🔍 Check if phone already exists
@@ -32,7 +32,7 @@ authRouter.post("/register", async (req, res) => {
       .query("SELECT user_id FROM Users WHERE phone = @phone");
 
     if (checkPhone.recordset.length > 0) {
-      return res.status(409).json({ error: "Phone number already exists" });
+      return res.status(209).json({ status : 209, error: "Phone number already exists" });
     }
 
     const hashed = await bcrypt.hash(password, 10);
@@ -65,7 +65,7 @@ authRouter.post("/register", async (req, res) => {
     // send email OTP
     await sendOtpEmail(email, emailOTP);
 
-    res.status(201).json({ message: "User registered" });
+    res.status(201).json({status : 201, message: "User registered", userId });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -84,11 +84,11 @@ authRouter.post('/verify-otp', async (req, res) => {
       .query('SELECT * FROM user_otps WHERE user_id=@user_id AND is_verified=0');
 
     const row = result.recordset[0];
-    if (!row) return res.status(400).json({error:'Invalid or already verified!'});
-    if (new Date(row.expires_at) < new Date()) return res.status(400).json({error:'OTP expired!'});
+    if (!row) return res.status(209).json({ status : 209, error:'Invalid or already verified!'});
+    if (new Date(row.expires_at) < new Date()) return res.status(209).json({ status : 209, error:'OTP expired!'});
 
-    if (parseInt(row.email_otp) !== email_otp) {
-      return res.status(400).json({error:'Incorrect OTP'});
+    if (parseInt(row.email_otp) !== parseInt(email_otp)) {
+      return res.status(209).json({ status : 209, error:'Incorrect OTP'});
     }
 
     await pool.request()
@@ -96,7 +96,7 @@ authRouter.post('/verify-otp', async (req, res) => {
       .input('user_id', user_id)
       .query('UPDATE users SET is_verified=1 WHERE user_id=@user_id; UPDATE user_otps SET is_verified=1 WHERE user_id=@user_id;');
 
-    res.status(201).json({ message: 'Verification successful' });
+    res.status(201).json({status : 201, message: 'Verification successful' });
   } catch (err) {
     console.error(err);
     res.status(500).json({error:'Server error'});
