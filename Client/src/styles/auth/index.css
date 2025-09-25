@@ -46,8 +46,7 @@
     height: 40px;
     margin-bottom: 1rem;
     background-color: var(--bg-crimson);
-    font-size: var(--font-md);
-    font-weight: var(--wt-bold);
+    font-size: var(--font-sm);
 
     display: flex;
     align-items: center;
@@ -60,6 +59,24 @@
 }
 .registration-inner .error-msg.red{
     color: var(--bg-crimson);
+}
+.registration-inner .success-container{
+    width: 100%;
+    max-width: 240px;
+    height: 40px;
+    margin-bottom: 1rem;
+    background-color: var(--bg-green-1);
+    font-size: var(--font-sm);
+    padding: 10px;
+
+    display: flex;
+    align-items: center;
+    text-align: center;
+    justify-content: center;
+}
+.registration-inner .success-msg{
+    font-size: var(--font-sm);
+    color: var(--tint-gray-700);
 }
 .registration-inner .input-box{
     margin-bottom: .5rem;
@@ -193,5 +210,11 @@
     }
     .button-box button{
         min-width: 90%;
+    }
+    .registration-inner .error-container{
+        max-width: 90%;
+    }
+    .registration-inner .success-container{
+        max-width: 90%;
     }
 }

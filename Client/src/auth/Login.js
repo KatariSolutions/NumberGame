@@ -1,16 +1,20 @@
 import React, { useState } from 'react'
 import logo from '../gallery/logo.svg'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Validations from './Validations';
+import { loginAPI } from '../apis/auth/loginAPI';
 
 function Login() {
   const [isFetching, setIsFetching] = useState(false);
+  const [isServerError, setIsServerError] = useState(false);
+  const [serverStatus, setServerStatus] = useState('');
   const [isError, setIsError] = useState(false);
   const [error, setError] = useState({
     type: '',
     message: ''
   })
 
+  const [isSuccess, setSuccess] = useState(0);
   const [data, setData] = useState({
     email: "",
     password: "",
@@ -27,10 +31,13 @@ function Login() {
     }));
   };
 
-  const buttonClick = (e) => {
+  const navigate = useNavigate();
+
+  const buttonClick = async (e) => {
     e.preventDefault();
 
     setIsFetching(true);
+    setIsServerError(false);
     const validations = new Validations();
     if(!validations.EmailValidation(data.email)){
       setIsError(true);
@@ -49,7 +56,28 @@ function Login() {
       setIsFetching(false);
       return;
     } else {
-      // will call api
+      try{
+        const res = await loginAPI(data);
+        console.log(res);
+        if(res.status === 201) {
+          setSuccess(1);
+          if(data.isChecked){
+            localStorage.setItem('token',res.token);
+          } else {
+            sessionStorage.setItem('token',res.token);
+          }
+
+          setTimeout(()=>{
+            navigate('/app/dashboard');
+          }, 3000)
+        } else {
+          setIsFetching(false);
+          setIsServerError(true);
+          setServerStatus(res.error);
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
   }
 
@@ -60,6 +88,11 @@ function Login() {
         </div>
         <h1>Login</h1>
         <div className='registration-inner'>
+            {
+              isServerError && <div className='error-container'>
+                <span className='error-msg'>{serverStatus}</span>
+              </div>
+            }
             {
               (isError && error.type=='email') && <span className='error-msg'>{error.message}</span>
             }

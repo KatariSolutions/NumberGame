@@ -1,22 +1,32 @@
 import React, { useState } from 'react'
 import logo from '../gallery/logo.svg'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Validations from './Validations';
+import { requestOTP } from '../apis/auth/requestOTP';
+import { verifyAPI } from '../apis/auth/verifyAPI';
+import { updatePwd } from '../apis/auth/updatePwdAPI';
 
 function ForgotPassword() {
   const [step, setStep] = useState(1);
   const [isFetching, setIsFetching] = useState(false);
+  const [isServerError, setIsServerError] = useState(false);
+  const [serverStatus, setServerStatus] = useState('');
   const [isError, setIsError] = useState(false);
   const [error, setError] = useState({
     type: '',
     message: ''
   })
 
+  const [successStage, setSuccessStage] = useState(0);
   const [data, setData] = useState({
     email: "",
     otp : "",
     password: ""
   });
+
+  const [user_id, setUserId] = useState('');
+
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -28,10 +38,11 @@ function ForgotPassword() {
     }));
   };
 
-  const buttonClick = (e) => {
+  const buttonClick = async (e) => {
     e.preventDefault();
 
     setIsFetching(true);
+    setIsServerError(false);
     const validations = new Validations();
     if(step === 1) {
       if(!validations.EmailValidation(data.email)){
@@ -43,8 +54,22 @@ function ForgotPassword() {
         setIsFetching(false);
         return;
       } else {
-        setStep(2);
-        setIsFetching(false);
+        try{
+          const res = await requestOTP(data);
+          console.log(res);
+          if(res.status === 201) {
+            setUserId(res.userId);
+            setSuccessStage(1);
+            setStep(2);
+            setIsFetching(false);
+          } else {
+            setIsFetching(false);
+            setIsServerError(true);
+            setServerStatus(res.error);
+          }
+        } catch (err) {
+          console.log(err)
+        }
       }
     } else if (step === 2) {
       if(!validations.OTPValidation(data.otp)){
@@ -56,8 +81,21 @@ function ForgotPassword() {
         setIsFetching(false);
         return;
       } else {
-        setStep(3);
-        setIsFetching(false);
+        try{
+          const payload = {user_id:user_id, email_otp:data.otp};
+          const res = await verifyAPI(payload);
+          if(res.status === 201) {
+            setSuccessStage(2);
+            setStep(3);
+            setIsFetching(false);
+          } else {
+            setIsFetching(false);
+            setIsServerError(true);
+            setServerStatus(res.error);
+          }
+        } catch (err) {
+          console.log(err)
+        }
       }
     } else {
       if(!validations.PasswordValidation(data.password)){
@@ -69,7 +107,23 @@ function ForgotPassword() {
         setIsFetching(false);
         return;
       } else {
-        // api call
+        try{
+          const payload = {user_id, password:data.password};
+          const res = await updatePwd(payload);
+          if(res.status === 201) {
+            setSuccessStage(3);
+
+            setTimeout(()=>{
+              navigate('/auth/login');
+            },2000)
+          } else {
+            setIsFetching(false);
+            setIsServerError(true);
+            setServerStatus(res.error);
+          }
+        } catch (err) {
+          console.log(err)
+        }
       }
     }
   }
@@ -81,6 +135,26 @@ function ForgotPassword() {
         </div>
         <h1>Reset Password</h1>
         <div className='registration-inner'>
+            {
+              successStage == 1 && <div className='success-container'>
+                <span className='success-msg'>6 digit OTP sent to your registered email.Valid for next 10 minutes only.</span>
+              </div>
+            }
+            {
+              successStage == 2 && <div className='success-container'>
+                <span className='success-msg'>OTP Verified. Please enter new password.</span>
+              </div>
+            }
+            {
+              successStage == 3 && <div className='success-container'>
+                <span className='success-msg'>Password updated. <Link to='/auth/login'>Login here</Link></span>
+              </div>
+            }
+            {
+              isServerError && <div className='error-container'>
+                <span className='error-msg'>{serverStatus}</span>
+              </div>
+            }
             {
               (isError && error.type=='email') && <span className='error-msg'>{error.message}</span>
             }
