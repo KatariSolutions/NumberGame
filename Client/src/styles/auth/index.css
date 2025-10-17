@@ -101,6 +101,7 @@
     background: var(--bg-primary);
     border-radius: 5px;
 }
+/*
 .input-box input::placeholder{
     color: var(--font-primary);
 }
@@ -113,6 +114,7 @@
 .input-box input::placeholder:active{
     color: var(--font-primary);
 }
+*/
 .input-box.checkbox{
     width: 100%;
     max-width: 240px;

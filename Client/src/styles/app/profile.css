@@ -1,0 +1,182 @@
+.profile-container {
+  width: 90%;
+  max-width: 800px;
+  margin: 30px auto;
+  padding: 25px 30px;
+}
+
+.profile-title-cards{
+    margin-bottom: 2rem;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.profile-title {
+  margin-bottom: 25px;
+  font-size: 24px;
+  color: var(--bg-primary);
+}
+
+.profile-section {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.profile-avatar {
+  position: relative;
+  text-align: center;
+}
+
+.img-holder{
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 5px solid var(--bg-secondary-dark);
+}
+/*
+.avatar-img {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 3px solid var(--bg-secondary-dark);
+}
+*/
+.add-btn {
+  position: absolute;
+  bottom: 0;
+  right: 10px;
+  background: var(--bg-secondary-dark);
+  border: none;
+  color: #fff;
+  border-radius: 50%;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.edit-btn-new{
+  width: 120px;
+  height: 30px;
+  margin-top: 1rem;
+
+  font-size: var(--font-sm);
+  border: none;
+  border-radius: 10px;
+  background-color: var(--bg-secondary-dark);
+  color: var(--bg-light);
+
+  cursor: pointer;
+}
+.edit-btn-new:hover{
+  background-color: var(--bg-secondary);
+}
+.edit-btn-new.enabled{
+  background-color: var(--bg-secondary);
+  color: var(--tint-gray-500);
+}
+
+.profile-details {
+  flex: 1;
+  min-width: 250px;
+}
+
+.detail-item {
+  margin-bottom: 15px;
+}
+
+.detail-item label {
+  display: block;
+  font-weight: bold;
+  color: var(--bg-secondary-dark);
+  margin-bottom: 5px;
+}
+
+.detail-item input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--bg-primary);
+  border-radius: 6px;
+  font-size: var(--font-md);
+  background-color: var(--bg-primary);
+}
+
+.save-btn {
+  background: var(--bg-green-1);
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.wallet-section,
+.bids-section {
+  margin-top: 30px;
+}
+
+.wallet-balance {
+  text-align: right;
+  font-size: 22px;
+  color: var(--font-primary);
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.txn-table, .bids-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.txn-table th, .bids-table th,
+.txn-table td, .bids-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+
+.view-more {
+  background: var(--bg-secondary-dark);
+  color: #fff;
+  border: none;
+  padding: 7px 12px;
+  border-radius: 5px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.no-bids {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.no-bids button {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .profile-section {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .profile-container {
+    padding: 20px;
+  }
+
+  .detail-item input {
+    font-size: var(--font-sm);
+  }
+
+  .profile-title-cards{
+    flex-direction: column;
+  }
+}

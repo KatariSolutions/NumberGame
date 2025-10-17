@@ -1,32 +1,24 @@
-import React, { useEffect, useState } from "react";
-import {Routes , Route , Navigate } from 'react-router-dom';
-import Loader from "./components/CustomLoader";
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 import AuthLayout from "./auth";
-import AppLayout from "./pages";
+import AppLayout from "./application";
+import ProtectedRoute from "./utils/ProtectedRoute";
 
 function App() {
-  const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 3000);
-
-    return () => clearTimeout(timer); // cleanup on unmount
-  }, []); // <-- run only once
-
   return (
     <div className="App">
-      {isLoading 
-        ? <Loader />: 
-        <div>
-          <Routes>
-            {/* Authentication routes are here */}
-            <Route path="/" element={<Navigate to="/auth/register" />} />
-            <Route path="/auth/*" element={<AuthLayout />}></Route>
-            <Route path="/app/*" element={<AppLayout />}></Route>
-          </Routes>
-        </div>}
+      <Routes>
+        <Route path="/" element={<Navigate to="/auth/login" />} />
+        <Route path="/auth/*" element={<AuthLayout />} />
+        <Route
+          path="/app/*"
+          element={
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
     </div>
   );
 }

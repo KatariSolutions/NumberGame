@@ -1,0 +1,149 @@
+.app-header{
+    width: 100%;
+    height: 40px;
+    padding: 0 1rem;
+    background-color: var(--bg-secondary);
+    box-shadow: var(--sidebar-shadow);
+
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+/* ===== Header Layout ===== */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--bg-secondary);
+  /*border-bottom: 1px solid var(--bg-secondary-dark);*/
+  padding: 10px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-logo img {
+  width: 60px;
+  height: 30px;
+}
+
+/* ===== Menu (Desktop) ===== */
+.header-menu {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--bg-primary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.menu-item svg {
+  font-size: 18px;
+}
+
+.menu-item:hover {
+  color: var(--font-primary);
+}
+
+/* ===== Hamburger (Mobile) ===== */
+.hamburger {
+  display: none;
+  font-size: 16px;
+  color: var(--font-primary);
+  cursor: pointer;
+}
+
+/* ===== Sidebar Overlay ===== */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: var(--bg-secondary);
+  z-index: 200;
+}
+
+/* ===== Sidebar Panel ===== */
+.sidebar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 250px;
+  height: 100%;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  animation: slideIn 0.3s ease forwards;
+  box-shadow: 2px 0 6px rgba(0,0,0,0.15);
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-header img {
+  width: 60px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: #555;
+}
+
+/* ===== Sidebar Menu ===== */
+.sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  margin-top: 30px;
+  gap: 20px;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #333;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.sidebar-item:hover {
+  color: var(--bg-primary);
+}
+
+.sidebar-item svg {
+  font-size: 20px;
+}
+
+/* ===== Responsive Design ===== */
+@media (max-width: 768px) {
+  .header-menu {
+    display: none;
+  }
+
+  .hamburger {
+    display: block;
+  }
+}

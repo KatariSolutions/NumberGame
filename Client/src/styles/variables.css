@@ -5,7 +5,7 @@
 
     /* Variable font sizes */
     --font-sm: 12px;
-    --font-md: 16px;
+    --font-md: 14px;
     --font-l: 24px;
     --font-xl: 32px;
     --font-xxl: 64px;
@@ -27,6 +27,7 @@
     --bg-gradient : linear-gradient(#965205,#EFA80C);
     --bg-primary : #EFA80C;
     --bg-secondary : #965205;
+    --bg-secondary-dark: #583002;
     --bg-light: #ffffff;
     --bg-dark: #111111;
     --bg-red-1 : #E13105;

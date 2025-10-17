@@ -56,7 +56,7 @@ function ForgotPassword() {
       } else {
         try{
           const res = await requestOTP(data);
-          console.log(res);
+          // console.log(res);
           if(res.status === 201) {
             setUserId(res.userId);
             setSuccessStage(1);

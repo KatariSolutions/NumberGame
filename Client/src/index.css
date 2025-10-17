@@ -37,6 +37,7 @@ a:hover{
   text-decoration: var(--link-hover-decoration);
 }
 
+/*
 input::placeholder{
   color: transparent;
 }
@@ -50,3 +51,4 @@ select::placeholder{
 select:focus::placeholder{
   color: var(--tint-gray-500);
 }
+*/

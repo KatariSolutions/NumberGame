@@ -34,18 +34,28 @@ function VerifyOTP() {
         }));
     };
 
-    useEffect(()=>{
-        const userId = localStorage.getItem('userId');
-        if(!userId){
-            navigate('../login');
-            return;
-        }
+    useEffect(() => {
+      // Try getting from sessionStorage first
+      let userId = sessionStorage.getItem('userId');
 
-        setData((prevData) => ({
-          ...prevData,
-          user_id : userId
-        }))
-    },[])
+      // If not found in session, check localStorage
+      if (!userId) {
+        userId = localStorage.getItem('userId');
+      }
+    
+      // If still not found, redirect to profile setup page
+      if (!userId) {
+        navigate('../login');
+        return;
+      }
+    
+      // Update state with userId
+      setData((prevData) => ({
+        ...prevData,
+        user_id: userId
+      }));
+    }, []);
+
 
     const buttonClick = async (e) => {
         e.preventDefault();

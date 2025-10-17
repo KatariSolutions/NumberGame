@@ -29,6 +29,7 @@ CREATE TABLE [users] (
     [password_hash] VARCHAR(255) NOT NULL,
     [created_at] DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
 	[is_verified] BIT DEFAULT 0,
+    [is_active] BIT DEFAULT 0,
     CONSTRAINT [PK_user_Id] PRIMARY KEY CLUSTERED ([user_id] ASC)
         WITH (
             PAD_INDEX = OFF,
@@ -73,6 +74,8 @@ CREATE TABLE [user_profiles] (
     [dob] DATE NOT NULL,
     [created_at] DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
 	[address] VARCHAR(200) DEFAULT NULL,
+    [pincode] VARCHAR(10) NULL,
+    [updated_at] DATETIME2 NOT NULL,
     CONSTRAINT [PK_profile_Id] PRIMARY KEY CLUSTERED ([profile_id] ASC)
         WITH (FILLFACTOR = 80)
 ) ON [PRIMARY];
@@ -130,6 +133,49 @@ GO
 -- Add foreign key to users table
 ALTER TABLE [user_otps]
 ADD CONSTRAINT [FK_user_otps_userid]
+FOREIGN KEY ([user_id]) REFERENCES [users]([user_id])
+ON UPDATE NO ACTION
+ON DELETE NO ACTION;
+GO
+
+
+/* ===========================================
+   LOGIN_SESSIONS
+   =========================================== */
+-- Create sequence for primary key
+CREATE SEQUENCE seq_loginsessionid AS BIGINT
+START WITH 1
+INCREMENT BY 1
+MINVALUE -9223372036854775808
+MAXVALUE 9223372036854775807
+CACHE;
+GO
+
+-- Drop table if exists
+DROP TABLE IF EXISTS [login_sessions];
+GO
+
+-- Create table
+CREATE TABLE [login_sessions] (
+    [login_session_id] BIGINT NOT NULL,
+    [user_id] BIGINT NOT NULL,
+	[is_active] BIT DEFAULT 1,
+	[session_starttime] DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+	[session_endtime] DATETIME2 DEFAULT NULL,
+	[token] VARCHAR(500) NOT NULL,
+    CONSTRAINT [PK_login_session_id] PRIMARY KEY CLUSTERED ([login_session_id] ASC)
+        WITH (FILLFACTOR = 80)
+) ON [PRIMARY];
+GO
+
+-- Add default from sequence for profile_id
+ALTER TABLE [login_sessions] 
+ADD DEFAULT (NEXT VALUE FOR [seq_loginsessionid]) FOR [login_session_id];
+GO
+
+-- Add foreign key to users table
+ALTER TABLE [login_sessions]
+ADD CONSTRAINT [FK_login_sessions_userid]
 FOREIGN KEY ([user_id]) REFERENCES [users]([user_id])
 ON UPDATE NO ACTION
 ON DELETE NO ACTION;

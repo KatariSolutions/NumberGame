@@ -1,11 +1,12 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import logo from '../gallery/logo.svg'
 import { Link, useNavigate } from 'react-router-dom'
 import Validations from './Validations';
 import { registerAPI } from '../apis/auth/registerAPI';
 import LoaderAnimation from '../components/LoaderAnimation';
+import { updateProfileDetailsAPI } from '../apis/user/updateProfileDetailsAPI';
 
-function Register() {
+function ProfileDetails() {
   const [isFetching, setIsFetching] = useState(false);
   const [isServerError, setIsServerError] = useState(false);
   const [serverStatus, setServerStatus] = useState('');
@@ -17,10 +18,11 @@ function Register() {
 
   const [isSuccess, setSuccess] = useState(0);
   const [data, setData] = useState({
-    email: "",
-    phone: "",
-    password: "",
-    isChecked: false
+    name: "",
+    dob: "",
+    avatar: "",
+    address: "",
+    pincode: ""
   });
 
   const navigate = useNavigate()
@@ -43,48 +45,45 @@ function Register() {
     setIsFetching(true);
 
     const validations = new Validations();
-    if(!validations.EmailValidation(data.email)){
+    if(!validations.NameValidation(data.name)){
       setIsError(true);
       setError({
-        type:'email',
-        message: 'Please enter valid Email Address!'
+        type:'name',
+        message: 'Please enter atleast 3 characters!'
       })
       setIsFetching(false);
       return;
-    } else if(!validations.PhoneValidation(data.phone)){
+    } else if(!validations.DOBValidation(data.dob)){
       setIsError(true);
       setError({
-        type:'phone',
-        message: 'Please enter valid Phone Number!'
+        type:'dob',
+        message: 'Must be 18 years old atleast!'
       })
       setIsFetching(false);
       return;
-    } else if(!validations.PasswordValidation(data.password)){
+    } else if(!validations.AddressValidation(data.address)){
       setIsError(true);
       setError({
-        type:'password',
-        message: 'min 8 chars, at least 1 letter & 1 number'
+        type:'address',
+        message: 'Should be between 6 to 50 characters only.'
       })
       setIsFetching(false);
       return;
-    } else if(!data.isChecked){
+    } else if(!validations.PincodeValidation(data.pincode)){
       setIsError(true);
       setError({
-        type:'check',
-        message: 'Please check the box before procceding'
+        type:'pincode',
+        message: 'Only 6 digits are allowed.'
       })
       setIsFetching(false);
       return;
     } else {
       try{
-        const res = await registerAPI(data);
+        const res = await updateProfileDetailsAPI(data);
         if(res.status === 201) {
           setSuccess(1);
-          localStorage.setItem('userId',res.userId);
 
-          setTimeout(()=>{
-            navigate('../verify-otp');
-          }, 3000)
+          navigate('/app');
         } else {
           setIsFetching(false);
           setIsServerError(true);
@@ -96,6 +95,25 @@ function Register() {
     }
   }
 
+  useEffect(() => {
+    // Try getting from sessionStorage first
+    let userId = sessionStorage.getItem('userId');
+    // If not found in session, check localStorage
+    if (!userId) {
+      userId = localStorage.getItem('userId');
+    }
+  
+    if (!userId) {
+      navigate('../login');
+      return;
+    }
+  
+    setData((prevData) => ({
+      ...prevData,
+      user_id: userId
+    }));
+  }, []);
+
   return (
     <div className='registration-outer'>
         <div className='logo'>
@@ -104,16 +122,10 @@ function Register() {
         {
           isSuccess
           ? <div className='registration-success'>
-            <h1>Success!</h1>
-            <h3>You have successfully registered!</h3>
-            <ul className='guidelines'>
-              <li>Your regitration only valid once you verified your account.</li>
-              <li>We have sent a 6-digit OTP to your email. Please enter in next step to verify.</li>
-            </ul>
             <LoaderAnimation customMessage="Redirecting"/>
           </div>
           : <> 
-          <h1>Register</h1>
+          <h1>Profile Details</h1>
           <div className='registration-inner'>
             {
               isServerError && <div className='error-container'>
@@ -121,65 +133,63 @@ function Register() {
               </div>
             }
             {
-              (isError && error.type=='email') && <span className='error-msg'>{error.message}</span>
+              (isError && error.type=='name') && <span className='error-msg'>{error.message}</span>
             }
             <div className='input-box'>
               <input 
-                type='email' 
-                placeholder='Email address' 
-                className={`inp-mail ${(isError&&error.type==='email')&&'error-box'}`}
-                name='email'
-                value={data.email} 
+                type='text' 
+                placeholder='Full Name' 
+                className={`inp-mail ${(isError&&error.type==='name')&&'error-box'}`}
+                name='name'
+                value={data.name} 
                 onChange={handleChange}
               />
             </div>
             {
-              (isError && error.type=='phone') && <span className='error-msg'>{error.message}</span>
+              (isError && error.type=='dob') && <span className='error-msg'>{error.message}</span>
             }
             <div className='input-box'>
               <input 
-                type='phone' 
-                placeholder='Mobile number' 
-                className= {`'inp-phone' ${(isError&&error.type==='phone')&&'error-box'}`}
-                name='phone'
-                value={data.phone} 
+                type='date' 
+                placeholder='DD/MM/YYYY' 
+                className= {`'inp-phone' ${(isError&&error.type==='dob')&&'error-box'}`}
+                name='dob'
+                value={data.dob} 
                 onChange={handleChange}
               />
             </div>
             {
-              (isError && error.type=='password') && <span className='error-msg'>{error.message}</span>
+              (isError && error.type=='address') && <span className='error-msg'>{error.message}</span>
             }
             <div className='input-box'>
               <input 
-                type='password' 
-                placeholder='Password' 
-                className={`'inp-password' ${(isError&&error.type==='password')&&'error-box'}`}
-                name='password'
-                value={data.password} 
+                type='text' 
+                placeholder='Address' 
+                className={`'inp-password' ${(isError&&error.type==='address')&&'error-box'}`}
+                name='address'
+                value={data.address} 
                 onChange={handleChange}
               />
-            </div>
-            <div className='input-box checkbox'>
-              <input 
-                type='checkbox' 
-                name='isChecked'
-                checked={data.isChecked} 
-                onChange={handleChange}
-              />
-              <label>I accept to terms and conditions.</label>
             </div>
             {
-              (isError && error.type=='check') && <span className='error-msg red'>{error.message}</span>
+              (isError && error.type=='pincode') && <span className='error-msg'>{error.message}</span>
             }
+            <div className='input-box'>
+              <input 
+                type='text' 
+                placeholder='Pincode' 
+                className={`'inp-password' ${(isError&&error.type==='pincode')&&'error-box'}`}
+                name='pincode'
+                value={data.pincode} 
+                onChange={handleChange}
+              />
+            </div>
             <div className='button-box'>
               {
                 isFetching
-                ? <button disabled={true} className='disabled'>Registering...</button>
-                : <button onClick={buttonClick}>Register</button>
+                ? <button disabled={true} className='disabled'>Submitting...</button>
+                : <button onClick={buttonClick}>Submit</button>
               }
-            </div>
-            <div className='add-links'>
-              <Link to='/auth/login'>Already registered? Login here</Link>
             </div>
           </div>
           </>
@@ -188,4 +198,4 @@ function Register() {
   )
 }
 
-export default Register
+export default ProfileDetails

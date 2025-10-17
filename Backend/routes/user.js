@@ -2,47 +2,113 @@ import express from 'express';
 import { pool, poolConnect } from '../db.js';
 import config from '../config.js';
 
-const userRouter = express.Router()
+const userRouter = express.Router();
 
-userRouter.get('/all', async(req, res) => {
-    try{
-        await poolConnect;
-
-        const result = await pool.request()
-            .query("SELECT user_id, email, phone, created_at FROM users")
-
-        res.status(201).json({message:'success', result: result.recordset})
-    } catch(err) {
-        console.error(err);
-        res.status(500).json({ error: 'Server error' });
-    }
-})
-
-userRouter.get('/:id', async (req, res) => {
+// ✅ Get all users
+userRouter.get('/all', async (req, res) => {
   try {
     await poolConnect;
 
-    const userId = req.params.id;
-    // console.log('userId: ',userId)
-    //console.log('user', req.user);
+    const result = await pool.request()
+      .query("SELECT user_id, email, phone, created_at FROM users");
 
-    const requestedId = parseInt(req.params.id);
-    const loggedInId = parseInt(req.user.userId); // <-- from JWT payload
+    res.status(200).json({ message: 'success', result: result.recordset });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
-    // Check if the user is trying to access their own data
-    if (requestedId !== loggedInId) {
+
+// ✅ Create or update user profile
+userRouter.post('/update-profile', async (req, res) => {
+  try {
+    await poolConnect;
+
+    const { user_id, name, dob, avatar, address, pincode } = req.body;
+    const formattedDob = dob ? new Date(dob) : null;
+
+    if (!user_id) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    // Check if a profile already exists
+    const checkResult = await pool.request()
+      .input('user_id', user_id)
+      .query(`SELECT COUNT(*) AS count FROM user_profiles WHERE user_id = @user_id`);
+
+    const recordExists = checkResult.recordset[0].count > 0;
+
+    if (recordExists) {
+      // 🔄 Update existing profile
+      await pool.request()
+        .input('user_id', user_id)
+        .input('name', name || null)
+        .input('dob', formattedDob || null)
+        .input('avatar', avatar || null)
+        .input('address', address || null)
+        .input('pincode', pincode || null)
+        .query(`
+          UPDATE user_profiles
+          SET full_name = @name,
+              dob = @dob,
+              avatar_url = @avatar,
+              address = @address,
+              pincode = @pincode,
+              updated_at = GETDATE()
+          WHERE user_id = @user_id
+        `);
+
+      return res.status(200).json({ message: 'Profile updated successfully' });
+    } else {
+      // 🆕 Insert new profile
+      await pool.request()
+        .input('user_id', user_id)
+        .input('name', name || null)
+        .input('dob', formattedDob || null)
+        .input('avatar', avatar || null)
+        .input('address', address || null)
+        .input('pincode', pincode || null)
+        .query(`
+          INSERT INTO user_profiles (user_id, full_name, dob, avatar_url, address, pincode, created_at)
+          VALUES (@user_id, @name, @dob, @avatar, @address, @pincode, GETDATE())
+        `);
+
+      return res.status(201).json({ message: 'Profile created successfully' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+
+// ✅ Get user by ID (must be placed after /update-profile)
+userRouter.post('/:id', async (req, res) => {
+  try {
+    await poolConnect;
+
+    //console.log(req.params.id);
+    const userId = parseInt(req.params.id);
+    const loggedInId = parseInt(req.user?.userId);
+
+    //console.log('userId : ',userId);
+    //console.log('loggedInId : ',loggedInId);
+
+    if (!loggedInId || userId !== loggedInId) {
       return res.status(403).json({ message: 'Forbidden: Cannot access other user data' });
     }
 
     const result = await pool.request()
-      .input('userId', userId) // safely pass param to avoid SQL injection
-      .query("SELECT user_id, email, phone, created_at FROM users WHERE user_id = @userId");
+      .input('userId', userId)
+      .query("select u.user_id,u.email,u.phone,up.* from users u with(nolock) left join user_profiles up with(nolock) on up.user_id = u.user_id WHERE u.user_id = @userId");
 
+    //console.log(result)
     if (result.recordset.length === 0) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    res.status(200).json({ message: 'success', result: result.recordset[0] });
+    res.status(201).json({ status:201, message: 'success', result: result.recordset[0] });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });

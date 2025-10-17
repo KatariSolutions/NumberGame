@@ -28,6 +28,9 @@ app.use('/welcome', (req, res) => {
 
 // Auth Routes
 app.use("/api/auth", authRouter);
+app.use("/api/auth/verify-token", verifyToken, (req,res) => {
+    res.status(201).json({status:201, message:'valid session'})
+})
 
 //user Routes
 app.use("/api/user", verifyToken, userRouter);

@@ -1,0 +1,30 @@
+@import url('../variables.css');
+
+.app_layout{
+    width: 100%;
+    height: 100%;
+    min-height: 100vh;
+}
+.app_inner_layout{
+    width: 100%;
+    height: 100%;
+    min-height: calc(100vh-32px);
+
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+.app_inner_left{
+    width: 100%;
+    height: 100%;
+}
+.app_inner_right{
+    width: 240px;
+    height: 100%;
+    background-color: var(--bg-secondary);
+}
+.app_inner_right .custom-profile{
+    width: 100%;
+    height: 100vh;
+}

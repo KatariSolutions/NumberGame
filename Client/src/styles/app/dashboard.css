@@ -1,0 +1,121 @@
+.dashboard-outer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 40px;
+}
+
+/* Card styling */
+.dashboard-card {
+  width: 320px;
+  min-height: 180px;
+  background: var(--bg-secondary);
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  padding: 20px;
+  transition: transform 0.2s ease;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-4px);
+}
+
+/* Header Section */
+.dashboard-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dashboard-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--font-primary);
+  margin: 0;
+}
+
+.session-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #2ecc71;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.status-text {
+  font-size: 12px;
+  font-size: bold;
+  color: #27ae60;
+  font-weight: 500;
+}
+
+/* Body Section */
+.dashboard-body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 40px;
+}
+
+.play-button {
+  background: var(--bg-primary);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 12px 30px;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.play-button:hover {
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  transform: scale(1.05);
+}
+
+.play-icon {
+  font-size: 26px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dashboard-outer {
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .dashboard-card {
+    width: 90%;
+  }
+
+  .dashboard-title {
+    font-size: 18px;
+  }
+
+  .play-button {
+    font-size: 16px;
+  }
+}
