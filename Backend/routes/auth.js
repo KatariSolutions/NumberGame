@@ -6,6 +6,7 @@ import config from '../config.js';
 import { sendOtpEmail } from '../middleware/mailer.js';
 //import moment from 'moment';
 import moment from "moment-timezone";
+import { forgotPasswordLimiter, loginLimiter, registerLimiter, sendOtpLimiter } from '../middleware/rateLimiters.js';
 
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -13,7 +14,7 @@ function generateOTP() {
 
 const authRouter = express.Router();
 
-authRouter.post("/register", async (req, res) => {
+authRouter.post("/register", registerLimiter, async (req, res) => {
   try {
     await poolConnect; 
 
@@ -74,7 +75,7 @@ authRouter.post("/register", async (req, res) => {
   }
 });
 
-authRouter.post('/request-otp', async (req, res) => {
+authRouter.post('/request-otp', sendOtpLimiter, async (req, res) => {
   try{
     await poolConnect; 
 
@@ -150,7 +151,7 @@ authRouter.post('/verify-otp', async (req, res) => {
   }
 });
 
-authRouter.post("/update-password", async (req, res) => {
+authRouter.post("/update-password", forgotPasswordLimiter, async (req, res) => {
   try{
     const { user_id, password } = req.body;
 
@@ -167,7 +168,7 @@ authRouter.post("/update-password", async (req, res) => {
   }
 })
 
-authRouter.post("/login", async (req, res) => {
+authRouter.post("/login", loginLimiter, async (req, res) => {
   try {
     await poolConnect;
 

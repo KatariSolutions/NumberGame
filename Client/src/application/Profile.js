@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { IoPencil, IoWallet, IoTimeOutline, IoAdd } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+
 import { getProfileDetailsAPI } from "../apis/user/getProfileDetailsAPI";
+import { updateProfileDetailsAPI } from "../apis/user/updateProfileDetailsAPI";
 //import defaultAvatar from "../gallery/default-avatar.png";
 
 function Profile() {
@@ -59,9 +62,17 @@ function Profile() {
   const fetchProfileData = async () => {
     try{
       const res = await getProfileDetailsAPI(user_id,token);
-      console.log(res)
+      //console.log(res)
       if(res.status==201){
-        setProfile(res.result);
+        const userData = res.result;
+
+        // ✅ Convert DOB if it exists
+        if (userData.dob) {
+          const date = new Date(userData.dob);
+          userData.dob = date.toISOString().split("T")[0]; // format -> YYYY-MM-DD
+        }
+
+        setProfile(userData);
       }
     } catch (err) {
       console.error(err);
@@ -111,9 +122,31 @@ function Profile() {
     setProfile((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = () => {
-    setIsEditing(false);
-    console.log("Profile updated:", profile);
+  const handleSave = async () => {
+    try {
+      setIsEditing(false);
+
+      const payload = {
+        user_id,
+        name: profile.full_name,
+        dob: profile.dob,
+        avatar: profile.avatar_url,
+        address: profile.address,
+        pincode: profile.pincode,
+      };
+
+      const res = await updateProfileDetailsAPI(payload, token);
+      //console.log('res : ', res);
+      if (res.status == 201) {
+        toast.success(res.message);
+        fetchProfileData(); // Refresh profile details after update
+      } else {
+        toast.warn("Something went wrong! Try again later.");
+      }
+    } catch (err) {
+      console.error("Error updating profile:", err);
+      toast.error(err.error || "Failed to update profile. Please try again.");
+    }
   };
 
   return (

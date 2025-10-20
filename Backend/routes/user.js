@@ -43,11 +43,11 @@ userRouter.post('/update-profile', async (req, res) => {
       // 🔄 Update existing profile
       await pool.request()
         .input('user_id', user_id)
-        .input('name', name || null)
-        .input('dob', formattedDob || null)
-        .input('avatar', avatar || null)
-        .input('address', address || null)
-        .input('pincode', pincode || null)
+        .input('name', name || '')
+        .input('dob', formattedDob || '')
+        .input('avatar', avatar || '')
+        .input('address', address || '')
+        .input('pincode', pincode || '')
         .query(`
           UPDATE user_profiles
           SET full_name = @name,
@@ -59,22 +59,67 @@ userRouter.post('/update-profile', async (req, res) => {
           WHERE user_id = @user_id
         `);
 
-      return res.status(200).json({ message: 'Profile updated successfully' });
+      return res.status(201).json({ status:201, message: 'Profile updated successfully' });
     } else {
       // 🆕 Insert new profile
       await pool.request()
         .input('user_id', user_id)
-        .input('name', name || null)
-        .input('dob', formattedDob || null)
-        .input('avatar', avatar || null)
-        .input('address', address || null)
-        .input('pincode', pincode || null)
+        .input('name', name || '')
+        .input('dob', formattedDob || '')
+        .input('avatar', avatar || '')
+        .input('address', address || '')
+        .input('pincode', pincode || '')
         .query(`
           INSERT INTO user_profiles (user_id, full_name, dob, avatar_url, address, pincode, created_at)
           VALUES (@user_id, @name, @dob, @avatar, @address, @pincode, GETDATE())
         `);
 
-      return res.status(201).json({ message: 'Profile created successfully' });
+      return res.status(201).json({ status:201, message: 'Profile created successfully' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ✅ Check if user profile details are available
+userRouter.post('/userdetailsavailable', async (req, res) => {
+  try {
+    await poolConnect;
+
+    const { user_id } = req.body;
+
+    if (!user_id) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    // Fetch user profile details
+    const result = await pool.request()
+      .input('user_id', user_id)
+      .query(`
+        SELECT full_name, dob, address, pincode 
+        FROM user_profiles 
+        WHERE user_id = @user_id
+      `);
+
+    if (result.recordset.length === 0) {
+      // No profile exists
+      return res.status(203).json({ message: false });
+    }
+
+    const profile = result.recordset[0];
+
+    // Check mandatory fields
+    const hasAllDetails =
+      profile.full_name &&
+      profile.dob &&
+      profile.address &&
+      profile.pincode;
+
+    if (hasAllDetails) {
+      return res.status(201).json({ message: true });
+    } else {
+      return res.status(203).json({ message: false });
     }
   } catch (err) {
     console.error(err);
