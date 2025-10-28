@@ -4,6 +4,7 @@ import CustomBanner from '../components/CustomBanner';
 import AppHeader from '../components/AppHeader';
 import Profile from './Profile';
 import Dashboard from './Dashboard';
+import Wallet from './Wallet';
 import { checkUserDetailsAvailableAPI } from '../apis/user/checkUserDetailsAvailableAPI';
 
 function AppLayout() {
@@ -53,6 +54,7 @@ function AppLayout() {
                         <Route path="/" element={<Navigate to="/app/dashboard" />} />
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/profile" element={<Profile/>} />
+                        <Route path="/wallet" element={<Wallet />}/>
                     </Routes>
                 </div>
                 {

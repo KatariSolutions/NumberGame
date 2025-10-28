@@ -12,6 +12,11 @@ const dbConfig = {
     encrypt: false,              // true if using Azure
     trustServerCertificate: true // required for local dev
   },
+  pool: {
+    max: 10,
+    min: 0,
+    idleTimeoutMillis: 30000
+  },
   connectionTimeout: 30000,
   requestTimeout: 30000
 };

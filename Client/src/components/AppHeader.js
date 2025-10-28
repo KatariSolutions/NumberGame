@@ -6,7 +6,8 @@ import {
   IoPlayCircle,
   IoPersonCircle,
   IoSettingsSharp,
-  IoLogOut
+  IoLogOut,
+  IoWallet
 } from 'react-icons/io5';
 import { deactivateSessionAPI } from '../apis/auth/deactivateSessionAPI';
 
@@ -46,7 +47,7 @@ function AppHeader() {
   const menuItems = [
     { label: 'Play', icon: <IoPlayCircle />, action: () => navigate('/app/dashboard') },
     { label: 'Profile', icon: <IoPersonCircle />, action: () => navigate('/app/profile') },
-    { label: 'Settings', icon: <IoSettingsSharp />, action: () => navigate('/app/settings') },
+    { label: 'Wallet', icon: <IoWallet />, action: () => navigate('/app/wallet') },
     { label: 'Logout', icon: <IoLogOut />, action: handleLogout }
   ];
 

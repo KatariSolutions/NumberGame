@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { IoPencil, IoWallet, IoTimeOutline, IoAdd } from "react-icons/io5";
+import { IoPencil, IoWallet, IoTimeOutline, IoAdd, IoRefresh } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import { getProfileDetailsAPI } from "../apis/user/getProfileDetailsAPI";
 import { updateProfileDetailsAPI } from "../apis/user/updateProfileDetailsAPI";
+import { getWalletBalanceAPI } from "../apis/wallet/getWalletBalanceAPI";
+import { getWalletTransactionsAPI } from "../apis/wallet/getWalletTransactionsAPI";
 //import defaultAvatar from "../gallery/default-avatar.png";
 
 function Profile() {
@@ -22,6 +24,8 @@ function Profile() {
     pincode: "",
   });
 
+  const [walletBalance, setWalletBalance] = useState(0)
+
   const [wallet, setWallet] = useState({
     balance: 0,
     transactions: [],
@@ -31,6 +35,7 @@ function Profile() {
 
   const [isEditing, setIsEditing] = useState(false);
 
+  // Get user_id and token from localstorage/sessionstorage
   useEffect(() => {
     let userId = sessionStorage.getItem('userId');
     // If not found in session, check localStorage
@@ -59,6 +64,7 @@ function Profile() {
     setToken(tok);
   }, []);
 
+  // fetch user details from endpoint
   const fetchProfileData = async () => {
     try{
       const res = await getProfileDetailsAPI(user_id,token);
@@ -79,6 +85,48 @@ function Profile() {
     }
   };
 
+  // fetch wallet balance from endpoint
+  const fetchWalletBalance = async () => {
+    try{
+      const res = await getWalletBalanceAPI(user_id, token);
+      //console.log(res)
+      if(res.status==201){
+        const WB = res.result?.balance || 0;
+        setWalletBalance(WB);
+      } else {
+        toast.error("Failed to fetch wallet balance. Try again later!")
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
+  useEffect(() => {
+    if (!user_id || !token) return; // wait until both are available
+    // Initial fetch
+    fetchWalletBalance();
+    // Set up interval for every 60 seconds
+    const interval = setInterval(() => {
+      fetchWalletBalance();
+    }, 60000); // 60,000 ms = 1 minute
+    // Cleanup on component unmount
+    return () => clearInterval(interval);
+  }, [user_id, token]);
+
+  const fetchWalletData = async () => {
+    try {
+      const res = await getWalletTransactionsAPI(user_id, token);
+      console.log(res)
+      if(res.status==201){
+        const wallet = res.result || {};
+        setWallet(wallet);
+      } else {
+        toast.error("Failed to fetch wallet transactions. Try again later!")
+      }
+    } catch (err) {
+      console.log(err)
+    }
+  };
+
   useEffect(()=>{
     //console.log('user_id : ',user_id);
     //console.log('token : ', token);
@@ -93,18 +141,6 @@ function Profile() {
     console.log('profile : ',profile);
   },[profile])
   */
-
-  const fetchWalletData = async () => {
-    const res = {
-      balance: 1520.5,
-      transactions: [
-        { id: 1, type: "Credit", amount: 500, date: "2025-10-10" },
-        { id: 2, type: "Debit", amount: 200, date: "2025-10-09" },
-        { id: 3, type: "Credit", amount: 1000, date: "2025-10-07" },
-      ],
-    };
-    setWallet(res);
-  };
 
   const fetchBidsData = async () => {
     const res = [
@@ -122,6 +158,7 @@ function Profile() {
     setProfile((prev) => ({ ...prev, [name]: value }));
   };
 
+  // to save the profile details
   const handleSave = async () => {
     try {
       setIsEditing(false);
@@ -155,7 +192,7 @@ function Profile() {
         <h2 className="profile-title">My Profile</h2>
         <div className="">
           <h4><IoWallet /> Wallet Balance</h4>
-          <p className="wallet-balance">₹ {wallet.balance.toFixed(2)}</p>
+          <p className="wallet-balance">₹ {walletBalance.toFixed(2)} {/*<IoRefresh />*/}</p>
         </div>
       </div>
 
@@ -244,7 +281,7 @@ function Profile() {
       {/* 💰 Wallet Info */}
       <div className="wallet-section">
         <h3><IoWallet /> Recent Transactions</h3>
-        {wallet.transactions.length > 0 ? (
+        {wallet.length > 0 ? (
           <table className="txn-table">
             <thead>
               <tr>
@@ -254,11 +291,11 @@ function Profile() {
               </tr>
             </thead>
             <tbody>
-              {wallet.transactions.map((txn) => (
-                <tr key={txn.id}>
-                  <td>{txn.type}</td>
+              {wallet.map((txn) => (
+                <tr key={txn.txn_id}>
+                  <td>{txn.amount > 0 ? 'CREDIT' :'DEBIT'}</td>
                   <td>₹{txn.amount}</td>
-                  <td>{txn.date}</td>
+                  <td>{txn?.created_at.replace('T'," ").replace('Z', " ")}</td>
                 </tr>
               ))}
             </tbody>
@@ -267,7 +304,7 @@ function Profile() {
           <p>No transactions yet</p>
         )}
 
-        <button className="view-more" onClick={() => navigate("/wallet")}>
+        <button className="view-more" onClick={() => navigate("/app/wallet")}>
           View More
         </button>
       </div>

@@ -244,6 +244,7 @@ GO
 CREATE TABLE [wallet_transactions] (
     [txn_id] BIGINT NOT NULL,
     [wallet_id] BIGINT NOT NULL,
+	[txn_type] VARCHAR(10) NOT NULL DEFAULT 'SELF',
     [amount] DECIMAL(10,2) NOT NULL,
     [reference_id] BIGINT NOT NULL,
     [created_at] DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
@@ -392,6 +393,46 @@ ON UPDATE NO ACTION
 ON DELETE NO ACTION;
 GO
 
+/* ===========================================
+   SESSION_USER_RESULTS
+   =========================================== */
+-- Creating a sequence
+CREATE SEQUENCE seq_userresultid AS BIGINT
+START WITH 1
+INCREMENT BY 1
+MINVALUE -9223372036854775808
+MAXVALUE 9223372036854775807
+CACHE;
+GO
+
+DROP TABLE IF EXISTS [session_user_results];
+GO
+
+CREATE TABLE [session_user_results] (
+    [user_result_id] BIGINT NOT NULL,
+    [session_id] BIGINT NOT NULL,
+    [user_id] BIGINT NOT NULL,
+    [chosen_number] INT NOT NULL,
+    [amount] DECIMAL(10,2) NOT NULL,
+    [is_winner] BIT NOT NULL,
+    [payout] DECIMAL(10,2) NOT NULL DEFAULT 0,
+    [created_at] DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    CONSTRAINT [PK_user_result_Id] PRIMARY KEY CLUSTERED ([user_result_id] ASC)
+) ON [PRIMARY];
+GO
+
+ALTER TABLE [session_user_results] 
+ADD DEFAULT (NEXT VALUE FOR [seq_userresultid]) FOR [user_result_id];
+GO
+
+ALTER TABLE [session_user_results]
+ADD CONSTRAINT [FK_user_results_sessionid]
+FOREIGN KEY ([session_id]) REFERENCES [game_sessions]([session_id]);
+
+ALTER TABLE [session_user_results]
+ADD CONSTRAINT [FK_user_results_userid]
+FOREIGN KEY ([user_id]) REFERENCES [users]([user_id]);
+GO
 
 
 /* ===========================================
@@ -414,6 +455,7 @@ GO
 CREATE TABLE [payment_orders] (
     [order_id] BIGINT NOT NULL,
     [user_id] BIGINT NOT NULL,
+	[txn_ref] BIGINT NOT NULL,
     [amount] DECIMAL(10,2) NOT NULL,
     [gateway] VARCHAR(50) NOT NULL,
     [gateway_order_id] VARCHAR(100) NOT NULL,
@@ -433,6 +475,14 @@ GO
 ALTER TABLE [payment_orders]
 ADD CONSTRAINT [FK_payment_orders_userid]
 FOREIGN KEY ([user_id]) REFERENCES [users]([user_id])
+ON UPDATE NO ACTION
+ON DELETE NO ACTION;
+GO
+
+-- Add foreign key to wallet transactions table
+ALTER TABLE [payment_orders]
+ADD CONSTRAINT [FK_payment_orders_txnid]
+FOREIGN KEY ([txn_ref]) REFERENCES [wallet_transactions]([txn_id])
 ON UPDATE NO ACTION
 ON DELETE NO ACTION;
 GO
