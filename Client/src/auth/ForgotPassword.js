@@ -5,6 +5,7 @@ import Validations from './Validations';
 import { requestOTP } from '../apis/auth/requestOTP';
 import { verifyAPI } from '../apis/auth/verifyAPI';
 import { updatePwd } from '../apis/auth/updatePwdAPI';
+import { toast } from 'react-toastify';
 
 function ForgotPassword() {
   const [step, setStep] = useState(1);
@@ -58,17 +59,27 @@ function ForgotPassword() {
           const res = await requestOTP(data);
           // console.log(res);
           if(res.status === 201) {
+            toast.success('OTP Sent to registered email.')
             setUserId(res.userId);
             setSuccessStage(1);
             setStep(2);
             setIsFetching(false);
           } else {
+            toast.error(res.error);
             setIsFetching(false);
             setIsServerError(true);
             setServerStatus(res.error);
           }
         } catch (err) {
-          console.log(err)
+          console.log(err);
+          if(err?.status === 403) {
+            navigate('/403');
+          }
+          if(err?.status === 401) {
+            navigate('/401');
+          }
+          toast.error(err.message);
+          navigate('/500');
         }
       }
     } else if (step === 2) {
@@ -85,16 +96,28 @@ function ForgotPassword() {
           const payload = {user_id:user_id, email_otp:data.otp};
           const res = await verifyAPI(payload);
           if(res.status === 201) {
+            toast.success('Verified Successfully!');
+
             setSuccessStage(2);
             setStep(3);
             setIsFetching(false);
           } else {
+            toast.error(res.error);
+
             setIsFetching(false);
             setIsServerError(true);
             setServerStatus(res.error);
           }
         } catch (err) {
-          console.log(err)
+          console.log(err);
+          if(err?.status === 403) {
+            navigate('/403');
+          }
+          if(err?.status === 401) {
+            navigate('/401');
+          }
+          toast.error(err.message);
+          navigate('/500');
         }
       }
     } else {
@@ -112,17 +135,27 @@ function ForgotPassword() {
           const res = await updatePwd(payload);
           if(res.status === 201) {
             setSuccessStage(3);
+            toast.success('Password Updated! Redirecting...')
 
             setTimeout(()=>{
               navigate('/auth/login');
             },2000)
           } else {
+            toast.error(res.error);
             setIsFetching(false);
             setIsServerError(true);
             setServerStatus(res.error);
           }
         } catch (err) {
-          console.log(err)
+          console.log(err);
+          if(err?.status === 403) {
+            navigate('/403');
+          }
+          if(err?.status === 401) {
+            navigate('/401');
+          }
+          toast.error(err.message);
+          navigate('/500');
         }
       }
     }

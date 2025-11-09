@@ -7,6 +7,7 @@ import { getProfileDetailsAPI } from "../apis/user/getProfileDetailsAPI";
 import { updateProfileDetailsAPI } from "../apis/user/updateProfileDetailsAPI";
 import { getWalletBalanceAPI } from "../apis/wallet/getWalletBalanceAPI";
 import { getWalletTransactionsAPI } from "../apis/wallet/getWalletTransactionsAPI";
+import { getBidsbyUserIdAPI } from "../apis/bids/getBidsByUserIdAPI";
 //import defaultAvatar from "../gallery/default-avatar.png";
 
 function Profile() {
@@ -82,6 +83,12 @@ function Profile() {
       }
     } catch (err) {
       console.error(err);
+      if(err?.status === 403) {
+        navigate('/403');
+      }
+      if(err?.status === 401) {
+        navigate('/401');
+      }
     }
   };
 
@@ -98,6 +105,12 @@ function Profile() {
       }
     } catch (err) {
       console.log(err);
+      if(err?.status === 403) {
+        navigate('/403');
+      }
+      if(err?.status === 401) {
+        navigate('/401');
+      }
     }
   }
   useEffect(() => {
@@ -123,7 +136,33 @@ function Profile() {
         toast.error("Failed to fetch wallet transactions. Try again later!")
       }
     } catch (err) {
-      console.log(err)
+      console.log(err);
+      if(err?.status === 403) {
+        navigate('/403');
+      }
+      if(err?.status === 401) {
+        navigate('/401');
+      }
+    }
+  };
+
+    // fetch user details from endpoint
+  const fetchBidsData = async () => {
+    try{
+      const res = await getBidsbyUserIdAPI(user_id,token);
+      //console.log(res)
+      if(res.status==201){
+        const bidsData = res.result;
+        setBids(bidsData);
+      }
+    } catch (err) {
+      console.error(err);
+      if(err?.status === 403) {
+        navigate('/403');
+      }
+      if(err?.status === 401) {
+        navigate('/401');
+      }
     }
   };
 
@@ -131,9 +170,11 @@ function Profile() {
     //console.log('user_id : ',user_id);
     //console.log('token : ', token);
 
-    fetchProfileData();
-    fetchWalletData();
-    fetchBidsData();
+    if (user_id !== 0) {
+      fetchProfileData();
+      fetchWalletData();
+      fetchBidsData();
+    }
   },[user_id,token])
 
   /*
@@ -141,15 +182,6 @@ function Profile() {
     console.log('profile : ',profile);
   },[profile])
   */
-
-  const fetchBidsData = async () => {
-    const res = [
-      { id: 1, number: 23, amount: 100, date: "2025-10-09" },
-      { id: 2, number: 45, amount: 150, date: "2025-10-07" },
-      { id: 3, number: 12, amount: 200, date: "2025-10-05" },
-    ];
-    setBids(res);
-  };
 
   const handleEditToggle = () => setIsEditing(!isEditing);
 
@@ -183,6 +215,12 @@ function Profile() {
     } catch (err) {
       console.error("Error updating profile:", err);
       toast.error(err.error || "Failed to update profile. Please try again.");
+      if(err?.status === 403) {
+        navigate('/403');
+      }
+      if(err?.status === 401) {
+        navigate('/401');
+      }
     }
   };
 
@@ -221,7 +259,7 @@ function Profile() {
             <input
               type="text"
               name="full_name"
-              value={profile.full_name}
+              value={profile?.full_name}
               onChange={handleChange}
               disabled={!isEditing}
             />
@@ -232,7 +270,7 @@ function Profile() {
             <input
               type="email"
               name="email"
-              value={profile.email}
+              value={profile?.email}
               disabled
             />
           </div>
@@ -242,7 +280,7 @@ function Profile() {
             <input
               type="date"
               name="dob"
-              value={profile.dob}
+              value={profile?.dob}
               onChange={handleChange}
               disabled={!isEditing}
             />
@@ -253,7 +291,7 @@ function Profile() {
             <input
               type="text"
               name="address"
-              value={profile.address}
+              value={profile?.address}
               onChange={handleChange}
               disabled={!isEditing}
             />
@@ -264,7 +302,7 @@ function Profile() {
             <input
               type="text"
               name="pincode"
-              value={profile.pincode}
+              value={profile?.pincode}
               onChange={handleChange}
               disabled={!isEditing}
             />
@@ -316,17 +354,17 @@ function Profile() {
           <table className="bids-table">
             <thead>
               <tr>
-                <th>Number</th>
-                <th>Amount</th>
-                <th>Date</th>
+                <th>Id</th>
+                <th>Bid</th>
+                <th>Profit/Loss</th>
               </tr>
             </thead>
             <tbody>
               {bids.slice(0, 5).map((bid) => (
-                <tr key={bid.id}>
-                  <td>{bid.number}</td>
-                  <td>₹{bid.amount}</td>
-                  <td>{bid.date}</td>
+                <tr key={bid.session_id}>
+                  <td>{bid.session_id}</td>
+                  <td>₹{bid.bid_placed}</td>
+                  <td>{bid.PnL > 0 ? '+'+bid.PnL : bid.PnL}</td>
                 </tr>
               ))}
             </tbody>
@@ -334,7 +372,7 @@ function Profile() {
         ) : (
           <div className="no-bids">
             <p>No bids yet. Start playing now!</p>
-            <button onClick={() => navigate("/app/play")}>Play Now</button>
+            <button onClick={() => navigate("/app/dashboard")}>Play Now</button>
           </div>
         )}
       </div>

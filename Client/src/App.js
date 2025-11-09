@@ -11,6 +11,7 @@ import ServerErrorPage from "./error/ServerErrorPage";
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import GamesLayout from "./application/Games";
 
 function App() {
   return (
@@ -39,6 +40,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <AppLayout />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="/game/*"
+            element={
+              <ProtectedRoute>
+                <GamesLayout />
+                {/* <GamesLayoutNew /> */}
               </ProtectedRoute>
             }
           />

@@ -14,6 +14,6 @@ export const getWalletBalanceAPI = async (userId, token) => {
         });
         return response.data;
     } catch (err) {
-        throw err.response?.data ||{message:err.message};
+        throw err.response?.data ||{status: err.response?.status || 500,message:err.message};
     }
 }

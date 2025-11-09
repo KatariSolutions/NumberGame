@@ -10,6 +10,7 @@ import {
   IoWallet
 } from 'react-icons/io5';
 import { deactivateSessionAPI } from '../apis/auth/deactivateSessionAPI';
+import { toast } from 'react-toastify';
 
 function AppHeader() {
   const navigate = useNavigate();
@@ -37,10 +38,17 @@ function AppHeader() {
 
         navigate("/auth/login");
       } else {
-        console.error("Failed to deactivate session:", res.error);
+        toast.error("Failed to deactivate session:");
       }
     } catch (err) {
-      console.error("Logout error:", err);
+      toast.error("Logout error");
+      if(err?.status === 403) {
+        navigate('/403');
+      }
+      if(err?.status === 401) {
+        navigate('/401');
+      }
+      navigate("/500")
     }
   };
 

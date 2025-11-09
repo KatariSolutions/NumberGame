@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { verifyToken } from "../apis/auth/verifyToken";
 import Loader from "../components/CustomLoader";
+import { toast } from "react-toastify";
 
 const ProtectedRoute = ({ children }) => {
   const [isVerified, setIsVerified] = useState(null);
@@ -26,8 +27,13 @@ const ProtectedRoute = ({ children }) => {
           setIsVerified(false);
         }
       } catch (err) {
-        console.error("Token verification failed:", err);
-        navigate('/403');
+        console.log(err);
+        if(err?.status === 403) {
+          navigate('/403');
+        }
+        if(err?.status === 401) {
+          navigate('/401');
+        }
         setIsVerified(false);
       }
     };

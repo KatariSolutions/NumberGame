@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import Validations from './Validations';
 import { registerAPI } from '../apis/auth/registerAPI';
 import LoaderAnimation from '../components/LoaderAnimation';
+import { toast } from 'react-toastify';
 
 function Register() {
   const [isFetching, setIsFetching] = useState(false);
@@ -82,6 +83,7 @@ function Register() {
           setSuccess(1);
           localStorage.setItem('userId',res.userId);
 
+          toast.success('OTP Sent to email. Please Check!')
           setTimeout(()=>{
             navigate('../verify-otp');
           }, 3000)
@@ -92,6 +94,14 @@ function Register() {
         }
       } catch (err) {
         console.error(err);
+        if(err?.status === 403) {
+          navigate('/403');
+        }
+        if(err?.status === 401) {
+          navigate('/401');
+        }
+        toast.error(err.message);
+        navigate('/500');
       }
     }
   }

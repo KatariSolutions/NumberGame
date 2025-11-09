@@ -1,8 +1,24 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import { IoPlayCircle } from 'react-icons/io5';
 import bg from '../gallery/gaming-banner.png';
+import { useNavigate } from 'react-router-dom';
+import DiceRoll from './Games/DiceRoll';
 
-function Dashboard() {
+function Dashboard(props) {
+  const isDetailsAvailable = props.isDetailsAvailable;
+  const setShowBanner = props.setShowBanner;
+  const setBannerClose = props.setBannerClose;
+  const navigate = useNavigate();
+
+  const handleClickGame = () => {
+    if(isDetailsAvailable){
+      navigate('/game/numbergame')
+    } else {
+      setShowBanner(true);
+      setBannerClose(false);
+    }
+  }
+
   return (
     <div className="dashboard-outer">
       <div className="dashboard-card" style={{ backgroundImage: `url(${bg})` }}>
@@ -15,7 +31,7 @@ function Dashboard() {
         </div>
 
         <div className="dashboard-body">
-          <button className="play-button">
+          <button className="play-button" onClick={handleClickGame}>
             <IoPlayCircle className="play-icon" />
             <span>Play</span>
           </button>

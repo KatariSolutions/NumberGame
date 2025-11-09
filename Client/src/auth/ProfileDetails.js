@@ -5,6 +5,7 @@ import Validations from './Validations';
 import { registerAPI } from '../apis/auth/registerAPI';
 import LoaderAnimation from '../components/LoaderAnimation';
 import { updateProfileDetailsAPI } from '../apis/user/updateProfileDetailsAPI';
+import { toast } from 'react-toastify';
 
 function ProfileDetails() {
   const [isFetching, setIsFetching] = useState(false);
@@ -91,6 +92,14 @@ function ProfileDetails() {
         }
       } catch (err) {
         console.error(err);
+        if(err?.status === 403) {
+          navigate('/403');
+        }
+        if(err?.status === 401) {
+          navigate('/401');
+        }
+        toast.error(err.message);
+        navigate('/500');
       }
     }
   }

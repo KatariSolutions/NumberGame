@@ -5,6 +5,7 @@ import Validations from './Validations';
 import { loginAPI } from '../apis/auth/loginAPI';
 import Loader from '../components/CustomLoader';
 import { verifyToken } from '../apis/auth/verifyToken';
+import { toast } from 'react-toastify';
 
 function Login() {
   const [isLoading, setIsLoading] = useState(true);
@@ -73,17 +74,28 @@ function Login() {
           }
 
           setIsLoading(true);
+          toast.success('Login Successfully!')
           setTimeout(()=>{
             setIsLoading(false);
             navigate('/app/dashboard');
           }, 1000)
         } else {
+          toast.error(res.error);
+          
           setIsFetching(false);
           setIsServerError(true);
           setServerStatus(res.error);
         }
       } catch (err) {
         console.error(err);
+        if(err?.status === 403) {
+          navigate('/403');
+        }
+        if(err?.status === 401) {
+          navigate('/401');
+        }
+        toast.error(err.message);
+        navigate('/500');
       }
     }
   }
@@ -111,6 +123,14 @@ function Login() {
       } catch (err) {
         console.error("Verification failed:", err);
         setIsLoading(false);
+        if(err?.status === 403) {
+          navigate('/403');
+        }
+        if(err?.status === 401) {
+          navigate('/401');
+        }
+        toast.error(err.message);
+        navigate('/500');
       }
     }
   };

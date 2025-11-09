@@ -119,3 +119,12 @@
     font-size: 16px;
   }
 }
+@media (max-width:575px) {
+  .dashboard-outer {
+    padding: 16px;
+  }
+
+  .dashboard-card {
+    width: 100%;
+  }
+}

@@ -6,11 +6,11 @@
 }
 
 .profile-title-cards{
-    margin-bottom: 2rem;
+  margin-bottom: 2rem;
 
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 .profile-title {
   margin-bottom: 25px;
@@ -124,17 +124,22 @@
   cursor: pointer;
 }
 
-.txn-table, .bids-table {
+.txn-table, .bids-section .bids-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 10px;
 }
 
-.txn-table th, .bids-table th,
-.txn-table td, .bids-table td {
+.txn-table tr th, .bids-section .bids-table tr th,
+.txn-table tr td, .bids-section .bids-table tr td {
   border: 1px solid #ddd;
   padding: 8px;
   text-align: center;
+}
+
+.bids-section .bids-table tr th{
+  background-color: transparent;
+  font-size: var(--font-md);
 }
 
 .view-more {
@@ -147,22 +152,30 @@
   cursor: pointer;
 }
 
-.no-bids {
-  text-align: center;
-  padding: 20px 0;
+.no-bids{
+  margin-bottom: 1rem;
 }
 
 .no-bids button {
-  background: #28a745;
-  color: white;
+  background: var(--bg-secondary-dark);
+  color: #fff;
   border: none;
-  padding: 8px 14px;
-  border-radius: 6px;
+  padding: 7px 12px;
+  border-radius: 5px;
+  margin-top: 10px;
   cursor: pointer;
 }
 
 /* Responsive */
 @media (max-width: 600px) {
+  .profile-title-cards{
+    margin-top: 2rem;
+  }
+
+  .profile-title{
+    display: none;
+  }
+
   .profile-section {
     flex-direction: column;
     align-items: center;
@@ -174,11 +187,20 @@
     width: 100%;
   }
 
+  .profile-details {
+    min-width: 280px;
+    margin-top: 1.5rem;
+  }
+
   .detail-item input {
     font-size: var(--font-sm);
   }
 
   .profile-title-cards{
     flex-direction: column;
+  }
+
+  .wallet-balance{
+    text-align: center;
   }
 }

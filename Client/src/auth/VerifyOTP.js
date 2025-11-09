@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import Validations from './Validations';
 import { verifyAPI } from '../apis/auth/verifyAPI';
 import LoaderAnimation from '../components/LoaderAnimation';
+import { toast } from 'react-toastify';
 
 function VerifyOTP() {
     const [isFetching, setIsFetching] = useState(false);
@@ -58,38 +59,47 @@ function VerifyOTP() {
 
 
     const buttonClick = async (e) => {
-        e.preventDefault();
+      e.preventDefault();
+      
+      setIsFetching(true);
+      const validations = new Validations();
+      if(!validations.OTPValidation(data.email_otp)){
+        setIsError(true);
+        setError({
+          type:'otp',
+          message: 'Please enter 6 digit otp'
+        })
+        setIsFetching(false);
+        return;
+      }
 
-        setIsFetching(true);
-        const validations = new Validations();
-
-        if(!validations.OTPValidation(data.email_otp)){
-          setIsError(true);
-          setError({
-            type:'otp',
-            message: 'Please enter 6 digit otp'
-          })
-          setIsFetching(false);
-          return;
+      try{
+          const res = await verifyAPI(data);
+          console.log(res);
+          if(res.status === 201) {
+            setSuccess(1);
+            toast.success('Verification Successful!');
+  
+            setTimeout(()=>{
+              navigate('../login');
+            }, 3000)
+          } else {
+            toast.error(res.error);
+            setIsFetching(false);
+            setIsServerError(true);
+            setServerStatus(res.error);
+          }
+      } catch (err) {
+        console.error(err);
+        if(err?.status === 403) {
+          navigate('/403');
         }
-
-        try{
-            const res = await verifyAPI(data);
-            console.log(res);
-            if(res.status === 201) {
-              setSuccess(1);
-    
-              setTimeout(()=>{
-                navigate('../login');
-              }, 3000)
-            } else {
-              setIsFetching(false);
-              setIsServerError(true);
-              setServerStatus(res.error);
-            }
-        } catch (err) {
-            console.error(err);
+        if(err?.status === 401) {
+          navigate('/401');
         }
+        toast.error(err.message);
+        navigate('/500');
+      }
     }
 
     return (

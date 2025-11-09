@@ -1,0 +1,94 @@
+import express from 'express';
+import { pool, poolConnect } from '../db.js';
+
+const bidsRouter = express.Router();
+
+// POST /api/bids/getBidsbySession
+bidsRouter.post('/getBidsbySession', async (req, res) => {
+  try {
+    const { session_id, user_id } = req.body;
+
+    if (!session_id || !user_id) {
+      return res.status(400).json({
+        status: 400,
+        message: 'Missing required parameters: session_id or user_id'
+      });
+    }
+
+    await poolConnect;
+
+    const result = await pool.request()
+      .input('session_id', session_id)
+      .input('user_id', user_id)
+      .query(`
+        SELECT 
+          user_result_id, 
+          session_id, 
+          user_id, 
+          chosen_number, 
+          amount, 
+          is_winner, 
+          payout
+        FROM session_user_results
+        WHERE session_id = @session_id AND user_id = @user_id
+        ORDER BY user_result_id DESC
+      `);
+
+    res.status(201).json({
+      status: 201,
+      message: 'success',
+      result: result.recordset
+    });
+
+  } catch (err) {
+    console.error('getBidsbySession Error:', err);
+    res.status(500).json({
+      status: 500,
+      error: 'Server error'
+    });
+  }
+});
+
+// POST /api/bids/getBidsbyUserId
+bidsRouter.post('/getBidsbyUserId', async (req, res) => {
+  try {
+    const { user_id } = req.body;
+
+    if (!user_id) {
+      return res.status(400).json({
+        status: 400,
+        message: 'Missing required parameters: user_id'
+      });
+    }
+
+    await poolConnect;
+
+    const result = await pool.request()
+      .input('user_id', user_id)
+      .query(`
+        SELECT session_id, 
+          SUM(amount) as bid_placed, 
+          SUM(payout) as payout, 
+          SUM(payout) - SUM(amount) as PnL
+        FROM session_user_results
+        WHERE user_id = @user_id
+        GROUP BY session_id
+        ORDER BY session_id desc
+      `);
+
+    res.status(201).json({
+      status: 201,
+      message: 'success',
+      result: result.recordset
+    });
+
+  } catch (err) {
+    console.error('getBidsbyUser Error:', err);
+    res.status(500).json({
+      status: 500,
+      error: 'Server error'
+    });
+  }
+});
+
+export default bidsRouter;

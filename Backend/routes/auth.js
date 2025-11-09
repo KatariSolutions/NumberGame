@@ -68,10 +68,14 @@ authRouter.post("/register", registerLimiter, async (req, res) => {
     // send email OTP
     await sendOtpEmail(email, emailOTP);
 
+    await pool.request()
+        .input('user_id', userId)
+        .query('INSERT INTO wallets (user_id, balance, last_updated) VALUES (@user_id, 0, GETUTCDATE())');
+
     res.status(201).json({status : 201, message: "User registered", userId });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ status:500, error: 'Server error' });
   }
 });
 
@@ -115,7 +119,7 @@ authRouter.post('/request-otp', sendOtpLimiter, async (req, res) => {
     res.status(201).json({status : 201, message: "OTP sent", userId });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ status:500, error: 'Server error' });
   } 
 })
 
@@ -147,7 +151,7 @@ authRouter.post('/verify-otp', async (req, res) => {
     res.status(201).json({status : 201, message: 'Verification successful' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({error:'Server error'});
+    res.status(500).json({status:500, error:'Server error'});
   }
 });
 
@@ -164,7 +168,7 @@ authRouter.post("/update-password", forgotPasswordLimiter, async (req, res) => {
     res.status(201).json({status : 201, message: "Password Updated"});
   } catch (err) {
     console.error(err);
-    res.status(500).json({error:'Server error'});
+    res.status(500).json({status: 500, error:'Server error'});
   }
 })
 
@@ -254,7 +258,7 @@ authRouter.post("/login", loginLimiter, async (req, res) => {
     res.status(201).json({ status : 201, userId:user.user_id, token });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ status : 500, error: 'Server error' });
   }
 });
 
@@ -263,7 +267,7 @@ authRouter.post("/deactivate-session", async (req, res) => {
     await poolConnect;
 
     const { userId } = req.body;
-    console.log('userId : ',parseInt(userId));
+    // console.log('userId : ',parseInt(userId));
 
     // Mark all active sessions for this user as inactive
     await pool.request()
@@ -293,7 +297,7 @@ authRouter.post("/activate-user", async (req, res) => {
     res.status(201).json({status:201,message:'User Activated'})
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ status : 500, error: 'Server error' });
   }
 });
 
@@ -309,7 +313,7 @@ authRouter.post("/deactivate-user", async (req, res) => {
     res.status(201).json({status:201,message:'User De-activated'})
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ status : 500, error: 'Server error' });
   }
 });
 

@@ -7,11 +7,15 @@
 @import url('./app/profile.css');
 @import url('./app/dashboard.css');
 @import url('./app/wallet.css');
+@import url('./games/NumberGame.css');
+@import url('./games/DiceRoll.css');
+@import url('./games/GameSummary.css');
 
 /* your other styles */
 body {
   font-family: var(--font-family-primary);
   background: var(--bg-gradient);
+  transition: 0.5s;
 }
 
 .box-100{

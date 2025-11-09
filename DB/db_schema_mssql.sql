@@ -30,6 +30,7 @@ CREATE TABLE [users] (
     [created_at] DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
 	[is_verified] BIT DEFAULT 0,
     [is_active] BIT DEFAULT 0,
+	[is_admin] BIT DEFAULT 0,
     CONSTRAINT [PK_user_Id] PRIMARY KEY CLUSTERED ([user_id] ASC)
         WITH (
             PAD_INDEX = OFF,
@@ -204,6 +205,7 @@ CREATE TABLE [wallets] (
     [user_id] BIGINT NOT NULL,
     [balance] DECIMAL(10,2) NOT NULL DEFAULT 0,
     [last_updated] DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+	[is_active] BIT DEFAULT 1,
     CONSTRAINT [PK_wallet_Id] PRIMARY KEY CLUSTERED ([wallet_id] ASC)
         WITH (FILLFACTOR = 80)
 ) ON [PRIMARY];
@@ -393,46 +395,6 @@ ON UPDATE NO ACTION
 ON DELETE NO ACTION;
 GO
 
-/* ===========================================
-   SESSION_USER_RESULTS
-   =========================================== */
--- Creating a sequence
-CREATE SEQUENCE seq_userresultid AS BIGINT
-START WITH 1
-INCREMENT BY 1
-MINVALUE -9223372036854775808
-MAXVALUE 9223372036854775807
-CACHE;
-GO
-
-DROP TABLE IF EXISTS [session_user_results];
-GO
-
-CREATE TABLE [session_user_results] (
-    [user_result_id] BIGINT NOT NULL,
-    [session_id] BIGINT NOT NULL,
-    [user_id] BIGINT NOT NULL,
-    [chosen_number] INT NOT NULL,
-    [amount] DECIMAL(10,2) NOT NULL,
-    [is_winner] BIT NOT NULL,
-    [payout] DECIMAL(10,2) NOT NULL DEFAULT 0,
-    [created_at] DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
-    CONSTRAINT [PK_user_result_Id] PRIMARY KEY CLUSTERED ([user_result_id] ASC)
-) ON [PRIMARY];
-GO
-
-ALTER TABLE [session_user_results] 
-ADD DEFAULT (NEXT VALUE FOR [seq_userresultid]) FOR [user_result_id];
-GO
-
-ALTER TABLE [session_user_results]
-ADD CONSTRAINT [FK_user_results_sessionid]
-FOREIGN KEY ([session_id]) REFERENCES [game_sessions]([session_id]);
-
-ALTER TABLE [session_user_results]
-ADD CONSTRAINT [FK_user_results_userid]
-FOREIGN KEY ([user_id]) REFERENCES [users]([user_id]);
-GO
 
 
 /* ===========================================
@@ -486,3 +448,49 @@ FOREIGN KEY ([txn_ref]) REFERENCES [wallet_transactions]([txn_id])
 ON UPDATE NO ACTION
 ON DELETE NO ACTION;
 GO
+
+
+
+
+/*
+
+	New Code to add/recommended
+
+*/
+CREATE SEQUENCE seq_userresultid AS BIGINT
+START WITH 1
+INCREMENT BY 1
+MINVALUE -9223372036854775808
+MAXVALUE 9223372036854775807
+CACHE;
+GO
+
+DROP TABLE IF EXISTS [session_user_results];
+GO
+
+CREATE TABLE [session_user_results] (
+    [user_result_id] BIGINT NOT NULL,
+    [session_id] BIGINT NOT NULL,
+    [user_id] BIGINT NOT NULL,
+    [chosen_number] INT NOT NULL,
+    [amount] DECIMAL(10,2) NOT NULL,
+    [is_winner] BIT NOT NULL,
+    [payout] DECIMAL(10,2) NOT NULL DEFAULT 0,
+    [created_at] DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    CONSTRAINT [PK_user_result_Id] PRIMARY KEY CLUSTERED ([user_result_id] ASC)
+) ON [PRIMARY];
+GO
+
+ALTER TABLE [session_user_results] 
+ADD DEFAULT (NEXT VALUE FOR [seq_userresultid]) FOR [user_result_id];
+GO
+
+ALTER TABLE [session_user_results]
+ADD CONSTRAINT [FK_user_results_sessionid]
+FOREIGN KEY ([session_id]) REFERENCES [game_sessions]([session_id]);
+
+ALTER TABLE [session_user_results]
+ADD CONSTRAINT [FK_user_results_userid]
+FOREIGN KEY ([user_id]) REFERENCES [users]([user_id]);
+GO
+

@@ -16,9 +16,9 @@ class GameSession {
   constructor(io, opts = {}) {
     this.io = io;
 
-    this.SESSION_MINUTES = opts.totalMinutes ?? 15;
-    this.ACTIVE_MINUTES = opts.activeMinutes ?? 10;
-    this.LOCKED_MINUTES = opts.lockedMinutes ?? 2;
+    this.SESSION_MINUTES = opts.totalMinutes ?? 3;
+    this.ACTIVE_MINUTES = opts.activeMinutes ?? 2;
+    this.LOCKED_MINUTES = opts.lockedMinutes ?? 0;
     this.RESULTS_MINUTES = this.SESSION_MINUTES - this.ACTIVE_MINUTES - this.LOCKED_MINUTES;
 
     this.SESSION_MS = this.SESSION_MINUTES * 60 * 1000;
@@ -67,10 +67,12 @@ class GameSession {
     const remainingActiveMs = Math.max(0, s.lockAt - now);
     // compute bid summary per chosen_number
     const summary = {};
-    for (const [userId, b] of s.bidsByUser.entries()) {
-      if (!summary[b.chosen_number]) summary[b.chosen_number] = { totalAmount: 0, count: 0 };
-      summary[b.chosen_number].totalAmount = Number(summary[b.chosen_number].totalAmount) + Number(b.amount);
-      summary[b.chosen_number].count += 1;
+    for (const [userId, userBids] of s.bidsByUser.entries()) {
+      for (const [num, b] of Object.entries(userBids)) {
+        if (!summary[num]) summary[num] = { totalAmount: 0, count: 0 };
+        summary[num].totalAmount += Number(b.amount);
+        summary[num].count += 1;
+      }
     }
     return {
       sessionId: s.sessionId,
@@ -109,29 +111,116 @@ class GameSession {
   }
 
   // Socket handlers
-  handleJoin(socket, { userId } = {}) {
+  async handleJoin(socket, { userId } = {}) {
     const uid = userId ?? socket.user?.userId;
     if (!uid) {
-      socket.emit('error', { message: 'userId missing' });
+      socket.emit("error", { message: "userId missing" });
       return;
     }
-    this.current.players.set(uid, (this.current.players.get(uid) || new Set()).add(socket.id));
-    socket.join('GLOBAL_GAME_ROOM');
-    // send full state (R1)
-    socket.emit('session_state', this._serializeSessionForClient());
+
+    try {
+      // --- 1️⃣ Get username from user_profiles ---
+      const req = pool.request();
+      req.input("user_id", sql.BigInt, uid);
+
+      const result = await req.query(`
+        SELECT full_name 
+        FROM user_profiles 
+        WHERE user_id = @user_id
+      `);
+
+      const username =
+        result.recordset.length > 0
+          ? result.recordset[0].full_name
+          : `User${uid}`;
+
+      // --- 2️⃣ Add player to current session map ---
+      if (!this.current.players.has(uid)) {
+        this.current.players.set(uid, new Set());
+      }
+      this.current.players.get(uid).add(socket.id);
+
+      // --- 3️⃣ Join socket room ---
+      socket.join("GLOBAL_GAME_ROOM");
+
+      // --- 4️⃣ Send current session state to the joined user ---
+      socket.emit("session_state", this._serializeSessionForClient());
+
+      // --- 5️⃣ Broadcast updated state to all users ---
+      this.emitSessionStateToAll();
+
+      // --- 6️⃣ Emit LIVE UPDATE to all ---
+      const currentPlayerCount = this.current.players.size;
+
+      this.io.to("GLOBAL_GAME_ROOM").emit("live_update", {
+        type: "JOIN",
+        username,
+        message: `${username} joined the session.`,
+        count: currentPlayerCount,
+        timestamp: new Date(),
+      });
+
+      console.log(`👋 ${username} (userId: ${uid}) joined session`);
+    } catch (err) {
+      console.error("❌ handleJoin error:", err);
+      socket.emit("error", { message: "Failed to join session." });
+    }
   }
 
-  handleLeave(socket) {
+
+  async handleLeave(socket) {
     const uid = socket.user?.userId;
     if (!uid) return;
-    const set = this.current.players.get(uid);
-    if (set) {
-      set.delete(socket.id);
-      if (set.size === 0) {
-        // keep player entry (they may have bids) — W1 allows offline wins.
+  
+    try {
+      // --- 1️⃣ Fetch username from user_profiles ---
+      const req = pool.request();
+      req.input("user_id", sql.BigInt, uid);
+  
+      const result = await req.query(`
+        SELECT full_name 
+        FROM user_profiles 
+        WHERE user_id = @user_id
+      `);
+  
+      const username =
+        result.recordset.length > 0
+          ? result.recordset[0].full_name
+          : `User${uid}`;
+  
+      // --- 2️⃣ Update players map ---
+      const set = this.current.players.get(uid);
+      if (set) {
+        set.delete(socket.id);
+        if (set.size === 0) {
+          // Keep entry (they may have bids) — W1 allows offline wins.
+          // Or remove it if you want to fully drop them:
+          // this.current.players.delete(uid);
+        }
       }
+  
+      // --- 3️⃣ Leave global room ---
+      socket.leave("GLOBAL_GAME_ROOM");
+  
+      // --- 4️⃣ Update state ---
+      this.emitSessionStateToAll();
+  
+      // --- 5️⃣ Broadcast live update to everyone ---
+      const currentPlayerCount = this.current.players.size;
+  
+      this.io.to("GLOBAL_GAME_ROOM").emit("live_update", {
+        type: "LEAVE",
+        username,
+        message: `${username} left the session.`,
+        count: currentPlayerCount,
+        timestamp: new Date(),
+      });
+  
+      console.log(`👋 ${username} (userId: ${uid}) left session`);
+    } catch (err) {
+      console.error("❌ handleLeave error:", err);
+      socket.emit("error", { message: "Failed to leave session." });
     }
-    socket.leave('GLOBAL_GAME_ROOM');
   }
 
   handleDisconnect(socket) {
@@ -139,35 +228,162 @@ class GameSession {
   }
 
   // placeBid: stores last bid for user in memory (overwrite previous)
-  handlePlaceBid(socket, payload = {}) {
+  async handlePlaceBid(socket, payload = {}) {
     const uid = payload.userId ?? socket.user?.userId;
-    if (!uid) return socket.emit('bid_rejected', { reason: 'userId missing' });
-    if (this.current.status !== 'ACTIVE') return socket.emit('bid_rejected', { reason: 'Session not active' });
+    if (!uid) return socket.emit("bid_rejected", { reason: "userId missing" });
+    if (this.current.status !== "ACTIVE")
+      return socket.emit("bid_rejected", { reason: "Session not active" });
 
     const { chosen_number, amount } = payload;
-    if (typeof chosen_number !== 'number' || !Number.isInteger(chosen_number)) {
-      return socket.emit('bid_rejected', { reason: 'Invalid chosen_number' });
+    if (typeof chosen_number !== "number" || !Number.isInteger(chosen_number)) {
+      return socket.emit("bid_rejected", { reason: "Invalid chosen_number" });
     }
+
     const amt = Number(amount);
-    if (isNaN(amt) || amt <= 0) return socket.emit('bid_rejected', { reason: 'Invalid amount' });
+    if (isNaN(amt) || amt <= 0)
+      return socket.emit("bid_rejected", { reason: "Invalid amount" });
 
-    // Save last bid per user (override previous)
-    this.current.bidsByUser.set(String(uid), { chosen_number, amount: amt, updatedAt: Date.now() });
+    const userKey = String(uid);
 
-    // ensure players map tracks sockets
-    const set = this.current.players.get(String(uid)) || new Set();
-    set.add(socket.id);
-    this.current.players.set(String(uid), set);
+    try {
+      // === 1️⃣ Fetch user full name from DB ===
+      const req = pool.request();
+      req.input("user_id", sql.BigInt, uid);
+      const result = await req.query(`
+        SELECT full_name 
+        FROM user_profiles 
+        WHERE user_id = @user_id
+      `);
 
-    // broadcast summary update
-    this.io.to('GLOBAL_GAME_ROOM').emit('session_update', this._serializeSessionForClient());
-    socket.emit('bid_accepted', { chosen_number, amount: amt });
+      const username =
+        result.recordset.length > 0
+          ? result.recordset[0].full_name
+          : `User${uid}`;
+
+      // === 2️⃣ Initialize user bids if not exists ===
+      if (!this.current.bidsByUser.has(userKey)) {
+        this.current.bidsByUser.set(userKey, {});
+      }
+
+      const userBids = this.current.bidsByUser.get(userKey);
+
+      // === 3️⃣ If this number already exists, update amount ===
+      if (userBids[chosen_number]) {
+        userBids[chosen_number].amount = amt;
+        userBids[chosen_number].updatedAt = Date.now();
+      } else {
+        // === Else, add new chosen number ===
+        userBids[chosen_number] = { amount: amt, updatedAt: Date.now() };
+      }
+
+      this.current.bidsByUser.set(userKey, userBids);
+
+      // === 4️⃣ Track player sockets ===
+      const set = this.current.players.get(userKey) || new Set();
+      set.add(socket.id);
+      this.current.players.set(userKey, set);
+
+      // === 5️⃣ Broadcast bid update to everyone ===
+      const currentPlayerCount = this.current.players.size;
+
+      this.io.to("GLOBAL_GAME_ROOM").emit("live_update", {
+        type: "BID",
+        username,
+        message: `${username} placed a bid on number ${chosen_number} with ₹${amt}`,
+        count: currentPlayerCount,
+        chosen_number,
+        amount: amt,
+        timestamp: new Date(),
+      });
+
+      // === 6️⃣ Notify user personally ===
+      socket.emit("bid_accepted", { chosen_number, amount: amt });
+
+      // === 7️⃣ Emit new session state ===
+      this.emitSessionStateToAll();
+
+      console.log(`🎯 ${username} placed a bid: #${chosen_number} → ₹${amt}`);
+    } catch (err) {
+      console.error("❌ handlePlaceBid error:", err);
+      socket.emit("bid_rejected", { reason: "Error placing bid" });
+    }
   }
+
 
   handleUpdateBid(socket, payload = {}) {
     // same as placeBid for this rule
     return this.handlePlaceBid(socket, payload);
   }
+
+  async handleDeleteBid(socket, payload = {}) {
+    const uid = payload.userId ?? socket.user?.userId;
+    if (!uid)
+      return socket.emit("bid_delete_failed", { reason: "userId missing" });
+    if (this.current.status !== "ACTIVE")
+      return socket.emit("bid_delete_failed", { reason: "Session not active" });
+  
+    const { chosen_number } = payload;
+    if (typeof chosen_number !== "number" || !Number.isInteger(chosen_number)) {
+      return socket.emit("bid_delete_failed", { reason: "Invalid chosen_number" });
+    }
+  
+    const userKey = String(uid);
+    const userBids = this.current.bidsByUser.get(userKey);
+  
+    if (!userBids || !userBids[chosen_number]) {
+      return socket.emit("bid_delete_failed", { reason: "Bid not found" });
+    }
+  
+    try {
+      // === 1️⃣ Fetch user full name from DB ===
+      const req = pool.request();
+      req.input("user_id", sql.BigInt, uid);
+      const result = await req.query(`
+        SELECT full_name 
+        FROM user_profiles 
+        WHERE user_id = @user_id
+      `);
+  
+      const username =
+        result.recordset.length > 0
+          ? result.recordset[0].full_name
+          : `User${uid}`;
+  
+      // === 2️⃣ Remove the chosen number ===
+      delete userBids[chosen_number];
+  
+      // === 3️⃣ Clean up bids map ===
+      if (Object.keys(userBids).length === 0) {
+        this.current.bidsByUser.delete(userKey);
+      } else {
+        this.current.bidsByUser.set(userKey, userBids);
+      }
+  
+      // === 4️⃣ Emit personal confirmation ===
+      socket.emit("bid_deleted", { chosen_number });
+  
+      // === 5️⃣ Broadcast new state to everyone ===
+      this.emitSessionStateToAll();
+  
+      // === 6️⃣ Send live update to all users ===
+      const currentPlayerCount = this.current.players.size;
+  
+      this.io.to("GLOBAL_GAME_ROOM").emit("live_update", {
+        type: "BID_DELETE",
+        username,
+        message: `${username} removed their bid on number ${chosen_number}.`,
+        count: currentPlayerCount,
+        chosen_number,
+        timestamp: new Date(),
+      });
+  
+      console.log(`🗑️ ${username} deleted bid on number ${chosen_number}`);
+    } catch (err) {
+      console.error("❌ handleDeleteBid error:", err);
+      socket.emit("bid_delete_failed", { reason: "Error deleting bid" });
+    }
+  }
+
 
   // Locking: persist bids and mark status
   async lockSession() {
@@ -178,11 +394,19 @@ class GameSession {
     try {
       await this.persistSessionAndBids(s);
       this.io.to('GLOBAL_GAME_ROOM').emit('session_locked', { sessionId: s.sessionId });
+      this.emitSessionStateToAll();
+
+      this.io.to("GLOBAL_GAME_ROOM").emit("live_update", {
+        type: "SESSION",
+        message: `Session Locked!`,
+      });
+
       console.log('Session locked and persisted.');
     } catch (err) {
       console.error('Error persisting bids at lock:', err);
       // still continue to calculate results; but you may want to handle retries
       this.io.to('GLOBAL_GAME_ROOM').emit('session_locked', { sessionId: s.sessionId, warning: 'persist_error' });
+      this.emitSessionStateToAll();
     }
   }
 
@@ -209,12 +433,17 @@ class GameSession {
 
       // Bulk insert bids (one row per user) using table-valued approach or batched insert
       // Simpler: build a single INSERT with multiple values (careful with many users)
-      const bids = Array.from(s.bidsByUser.entries()).map(([userId, b]) => ({
-        userId: BigInt(userId),
-        chosenNumber: b.chosen_number,
-        amount: b.amount,
-        createdAt: new Date(b.updatedAt)
-      }));
+      const bids = [];
+      for (const [userId, userBids] of s.bidsByUser.entries()) {
+        for (const [num, b] of Object.entries(userBids)) {
+          bids.push({
+            userId: BigInt(userId),
+            chosenNumber: Number(num),
+            amount: b.amount,
+            createdAt: new Date(b.updatedAt)
+          });
+        }
+      }
 
       if (bids.length > 0) {
         // Create TVP-like temp table approach is best; if not available, do batched inserts
@@ -229,7 +458,7 @@ class GameSession {
           const pChosen = `chosen${idxSuffix}`;
           const pAmount = `amount${idxSuffix}`;
           const pCreated = `created${idxSuffix}`;
-          values.push(`(@${pSessionId}, @${pUser}, @${pChosen}, @${pAmount}, @${pCreated})`);
+          values.push(`(@pSessionId, @${pUser}, @${pChosen}, @${pAmount}, @${pCreated})`);
           parameters[pUser] = { type: sql.BigInt, value: row.userId };
           parameters[pChosen] = { type: sql.Int, value: row.chosenNumber };
           parameters[pAmount] = { type: sql.Decimal(10,2), value: row.amount };
@@ -239,15 +468,18 @@ class GameSession {
         // attach session id param
         req.input('pSessionId', sql.BigInt, dbSessionId);
 
-        // attach other params
-        let loopIndex = 0;
-        for (const [paramName, p] of Object.entries(parameters)) {
-          req.input(paramName, p.type, p.value);
-          loopIndex++;
-        }
-
-        const insertBidsSql = `INSERT INTO bids (session_id, user_id, chosen_number, amount, created_at) VALUES ${values.join(', ')}`;
-        await req.query(insertBidsSql);
+        // ✅ Define all dynamic params
+        Object.entries(parameters).forEach(([key, param]) => {
+          req.input(key, param.type, param.value);
+        });
+      
+        const valuesSql = values.join(', ');
+        const query = `
+          INSERT INTO bids (${columnsSql})
+          VALUES ${valuesSql};
+        `;
+      
+        await req.query(query);
       }
 
       await tx.commit();
@@ -255,6 +487,7 @@ class GameSession {
       // store dbSessionId so we can reference later
       s.dbSessionId = dbSessionId;
       console.log('Persisted session and bids. session_id:', dbSessionId);
+      this.emitSessionStateToAll();
     } catch (err) {
       await tx.rollback();
       throw err;
@@ -264,46 +497,99 @@ class GameSession {
   // calculate result, save session_results and session_user_results, payouts
   async calculateAndAnnounceResults() {
     const s = this.current;
-    if (!s || s.status !== 'LOCKED') return;
-    s.status = 'COMPUTING_RESULTS';
+    if (!s || s.status !== "LOCKED") return;
+    s.status = "COMPUTING_RESULTS";
+    
+    this.io.to("GLOBAL_GAME_ROOM").emit("live_update", {
+      type: "SESSION",
+      message: "Computing Results!!",
+    });
 
-    // Simple compute: pick winning_number randomly among numbers that received bids.
-    const numberTotals = new Map(); // chosen_number -> total amount
-    for (const [uid, b] of s.bidsByUser.entries()) {
-      const num = b.chosen_number;
-      const prev = numberTotals.get(num) || 0;
-      numberTotals.set(num, prev + Number(b.amount));
+    // === STEP 1: Generate 6 random dice results ===
+    const results = Array.from({ length: 6 }, () => Math.floor(Math.random() * 6) + 1);
+
+    // Count occurrences of each number (1-6)
+    const resultCounts = {};
+    for (const n of results) {
+      resultCounts[n] = (resultCounts[n] || 0) + 1;
     }
 
-    // needs to update
-    const candidateNumbers = Array.from(numberTotals.keys());
-    const winningNumber = candidateNumbers.length ? candidateNumbers[Math.floor(Math.random() * candidateNumbers.length)] : 1;
+    console.log("🎲 Computed Results:", results, "Counts:", resultCounts);
 
-    // Build per-user result rows
+    // === STEP 2: Compute per-user winnings ===
     const userResults = [];
-    for (const [uid, b] of s.bidsByUser.entries()) {
-      const isWinner = winningNumber !== null && b.chosen_number === winningNumber;
-      // payout logic — simple example: winners get amount * 2 (you should change to real odds)
-      const payout = isWinner ? Number(b.amount) * 2 : 0;
-      userResults.push({
-        userId: BigInt(uid),
-        chosenNumber: b.chosen_number,
-        amount: b.amount,
-        isWinner: isWinner ? 1 : 0,
-        payout
-      });
+    const userNetMap = new Map(); // 👈 store total net per user
+
+    for (const [uid, userBids] of s.bidsByUser.entries()) {
+      let totalPayout = 0;
+      let totalBid = 0;
+    
+      for (const [num, b] of Object.entries(userBids)) {
+        const chosenNum = Number(num);
+        const count = resultCounts[chosenNum] || 0;
+        const amount = Number(b.amount);
+        const payout = count > 0 ? amount * count : 0;
+      
+        totalBid += amount;
+        totalPayout += payout;
+      
+        userResults.push({
+          userId: BigInt(uid),
+          chosenNumber: chosenNum,
+          amount,
+          isWinner: count > 0 ? 1 : 0,
+          payout,
+          multiplier: count,
+        });
+      }
+
+      // Store net (totalPayout - totalBid)
+      userNetMap.set(uid, totalPayout - totalBid);
+
+      // Send personal result immediately
+      const socketIds = s.players.get(String(uid));
+      const payload = {
+        sessionId: s.sessionId,
+        dbSessionId: s?.dbSessionId,
+        userId: uid,
+        results,
+        totalPayout,
+        totalBid,
+        net: totalPayout - totalBid,
+      };
+      if (socketIds) {
+        for (const sid of socketIds) {
+          this.io.to(sid).emit("personal_result_preview", payload);
+        }
+      }
     }
 
-    // Persist results & payouts in a transaction: session_results, session_user_results, wallet_transactions & wallets update
+    //console.log('userResults : ', userResults);
+    //console.log('userNetMap : ', userNetMap);
+
+    // Emit results to everyone for UI display
+    this.io.to("GLOBAL_GAME_ROOM").emit("announce_result_preview", {
+      sessionId: s.sessionId,
+      results,
+      status: "RESULTS",
+    });
+    this.io.to("GLOBAL_GAME_ROOM").emit("live_update", {
+      type: "SESSION",
+      results,
+      message: `Results Declared!`,
+    });
+
+    // === STEP 3: Persist results & update wallets ===
     const tx = new sql.Transaction(pool);
     await tx.begin();
     try {
       const req = tx.request();
-      // Insert session_results (use inserted session id if exists, else rely on sequence)
-      // If we persisted session row already on lock, s.dbSessionId exists
+    
+      // If persisted session missing, insert one
       let dbSessionId = s.dbSessionId;
       if (!dbSessionId) {
-        // Insert session again fallback
+        req.input("sessionMs", sql.BigInt, this.SESSION_MS);
+        req.input("activeMs", sql.BigInt, this.ACTIVE_MS);
         const inserted = await req.query(`
           INSERT INTO game_sessions (session_start, session_end, bidding_end, created_at)
           OUTPUT INSERTED.session_id
@@ -311,94 +597,75 @@ class GameSession {
         `);
         dbSessionId = inserted.recordset?.[0]?.session_id;
       }
-
-      req.input('sessionId', sql.BigInt, dbSessionId);
-      req.input('winningNumber', sql.Int, winningNumber);
+    
+      const w_num = results.join(''); // e.g. "134523"
+      req.input("sessionId", sql.BigInt, dbSessionId);
+      req.input("w_num", sql.VarChar(20), w_num);
 
       await req.query(`
         INSERT INTO session_results (session_id, winning_number, declared_at)
-        VALUES (@sessionId, @winningNumber, GETDATE())
+        VALUES (@sessionId, @w_num, GETDATE())
       `);
 
-      // Insert session_user_results and apply wallet updates + wallet_transactions
+      // === STEP 4: Insert user results ===
       for (let i = 0; i < userResults.length; i++) {
         const r = userResults[i];
         req.input(`u_userId${i}`, sql.BigInt, r.userId);
         req.input(`u_chosen${i}`, sql.Int, r.chosenNumber);
-        req.input(`u_amount${i}`, sql.Decimal(10,2), r.amount);
+        req.input(`u_amount${i}`, sql.Decimal(10, 2), r.amount);
         req.input(`u_isWin${i}`, sql.Bit, r.isWinner);
-        req.input(`u_payout${i}`, sql.Decimal(10,2), r.payout);
-
+        req.input(`u_payout${i}`, sql.Decimal(10, 2), r.payout);
+      
         await req.query(`
           INSERT INTO session_user_results (session_id, user_id, chosen_number, amount, is_winner, payout, created_at)
           VALUES (@sessionId, @u_userId${i}, @u_chosen${i}, @u_amount${i}, @u_isWin${i}, @u_payout${i}, GETDATE())
         `);
+      }
 
-        // If payout > 0, credit wallet (simple example)
-        if (Number(r.payout) > 0) {
-          // Update wallets balance
-          await req.query(`
-            UPDATE wallets
-            SET balance = balance + @u_payout${i}, last_updated = GETDATE()
-            WHERE user_id = @u_userId${i}
-          `);
+      // === STEP 5: Single wallet transaction per user ===
+      for (const [uid, net] of userNetMap.entries()) {
+        const netValue = Number(net);
+        // req.input(`net_${uid}`, sql.Decimal(10, 2), Math.abs(netValue));
 
-          // Insert wallet transaction for payout (reference_id -> session id)
-          await req.query(`
-            INSERT INTO wallet_transactions (wallet_id, txn_type, amount, reference_id, created_at)
-            SELECT wallet_id, 'SYSTEM', @u_payout${i}, @sessionId, GETDATE()
-            FROM wallets WHERE user_id = @u_userId${i}
-          `);
-        } else {
-          // you may want to insert a losing transaction or not; optional
-        }
+        // Update wallet balance
+        await req.query(`
+          UPDATE wallets
+          SET balance = balance + ${netValue}, last_updated = GETDATE()
+          WHERE user_id = ${uid}
+        `);
+        // Insert single SYSTEM transaction with net result
+        await req.query(`
+          INSERT INTO wallet_transactions (wallet_id, txn_type, amount, reference_id, created_at)
+          SELECT wallet_id, 'SYSTEM', ${netValue}, @sessionId, GETDATE()
+          FROM wallets WHERE user_id = ${uid}
+        `);
       }
 
       await tx.commit();
-      console.log('Results saved and wallets updated for session', dbSessionId);
+      console.log("✅ Results settled for session", dbSessionId);
     } catch (err) {
       await tx.rollback();
-      console.error('Error saving results/payouts', err);
-      // optionally: persist to file / queue for retry
+      console.error("❌ Error saving results/payouts", err);
     }
 
-    // Broadcast results
-    this.io.to('GLOBAL_GAME_ROOM').emit('announce_result', {
-      sessionId: s.sessionId,
-      winningNumber,
-      summary: {
-        totalPlayers: s.bidsByUser.size,
-        totalAmount: Array.from(s.bidsByUser.values()).reduce((sum, b) => sum + Number(b.amount), 0)
-      }
+    // === STEP 6: Final announce - settlement complete ===
+    s.status = "SETTLED";
+    this.emitSessionStateToAll();
+    this.io.to("GLOBAL_GAME_ROOM").emit("live_update", {
+      type: "SESSION",
+      message: `Wallets updated! Please check.`,
     });
-
-    // Personal results: send to connected sockets; offline users can be later notified via other channels
-    for (const [uid, b] of s.bidsByUser.entries()) {
-      const isWin = b.chosen_number === winningNumber;
-      const payload = {
-        sessionId: s.sessionId,
-        userId: uid,
-        chosenNumber: b.chosen_number,
-        amount: b.amount,
-        isWinner: isWin,
-        payout: isWin ? Number(b.amount) * 2 : 0
-      };
-      const socketIds = s.players.get(String(uid));
-      if (socketIds) {
-        for (const sid of socketIds) {
-          this.io.to(sid).emit('personal_result', payload);
-        }
-      } else {
-        // offline — they still win/lose; you persisted session_user_results & wallet tx above per W1
-      }
-    }
-
-    s.status = 'RESULTS';
   }
 
   // end session, cleanup and start new
   async endSessionAndStartNew() {
     const old = this.current;
+    old.status = 'ENDED';
+    this.io.to("GLOBAL_GAME_ROOM").emit("live_update", {
+      type: "SESSION",
+      message: `Session Ended`,
+    });
+    this.emitSessionStateToAll();
     console.log('Ending session', old.sessionId);
     console.log('Ending on : ', new Date(moment.now()));
     // clear timers if any
@@ -409,6 +676,11 @@ class GameSession {
     this.io.to('GLOBAL_GAME_ROOM').emit('new_session', this._serializeSessionForClient());
     console.log('New session started', this.current.sessionId);
     console.log('Staretd on : ', new Date(moment.now()));
+    this.io.to("GLOBAL_GAME_ROOM").emit("live_update", {
+      type: "SESSION",
+      message: `New Session Started.`,
+    });
+    this.emitSessionStateToAll();
   }
 
   // batch persistence stub (we already persist on lock)

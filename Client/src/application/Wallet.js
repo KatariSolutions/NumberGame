@@ -5,6 +5,7 @@ import { getWalletBalanceAPI } from "../apis/wallet/getWalletBalanceAPI";
 import { getWalletTransactionsAPI } from "../apis/wallet/getWalletTransactionsAPI";
 import { withdrawWalletAPI } from "../apis/wallet/withdrawWalletAPI";
 import { addFundsWalletAPI } from "../apis/wallet/addFundsWalletAPI";
+import { useNavigate } from "react-router-dom";
 
 function Wallet() {
   const [userId, setUserId] = useState("");
@@ -18,13 +19,15 @@ function Wallet() {
   const [filters, setFilters] = useState({ txn_type: "ALL", start_date: "", end_date: "" });
   const [loading, setLoading] = useState(false);
 
+  const navigate = useNavigate();
+
   // Load user credentials
   useEffect(() => {
     const uid = sessionStorage.getItem("userId") || localStorage.getItem("userId");
     const tok = sessionStorage.getItem("token") || localStorage.getItem("token");
     if (!uid || !tok) {
       toast.error("Please login again.");
-      window.location.href = "/login";
+      window.location.href = "/auth/login";
       return;
     }
     setUserId(uid);
@@ -40,6 +43,12 @@ function Wallet() {
       }
     } catch (err) {
       toast.error("Failed to fetch wallet balance.");
+      if(err?.status === 403) {
+        navigate('/403');
+      }
+      if(err?.status === 401) {
+        navigate('/401');
+      }
     }
   };
 
@@ -55,8 +64,14 @@ function Wallet() {
       }
     } catch (err) {
       toast.error("Failed to fetch transactions.");
+      if(err?.status === 403) {
+        navigate('/403');
+      }
+      if(err?.status === 401) {
+        navigate('/401');
+      }
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -102,6 +117,12 @@ function Wallet() {
       }
     } catch (err) {
       toast.error("Withdraw failed!");
+      if(err?.status === 403) {
+        navigate('/403');
+      }
+      if(err?.status === 401) {
+        navigate('/401');
+      }
     }
   };
 
@@ -122,6 +143,12 @@ function Wallet() {
       }
     } catch (err) {
       toast.error("Add funds failed!");
+      if(err?.status === 403) {
+        navigate('/403');
+      }
+      if(err?.status === 401) {
+        navigate('/401');
+      }
     }
   };
 
@@ -212,7 +239,7 @@ function Wallet() {
                     ₹{txn.amount.toFixed(2)}
                   </td>
                   <td>{txn.txn_type}</td>
-                  <td>{new Date(txn.created_at).toLocaleString()}</td>
+                  <td>{new Date(txn.created_at).toLocaleDateString()}</td>
                 </tr>
               ))}
             </tbody>

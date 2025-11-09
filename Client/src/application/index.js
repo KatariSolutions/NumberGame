@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import CustomBanner from '../components/CustomBanner';
 import AppHeader from '../components/AppHeader';
 import Profile from './Profile';
@@ -8,11 +8,14 @@ import Wallet from './Wallet';
 import { checkUserDetailsAvailableAPI } from '../apis/user/checkUserDetailsAvailableAPI';
 
 function AppLayout() {
-    const [bannerClose,SetBannerClose] = useState(false);
+    const [bannerClose,setBannerClose] = useState(false);
     const [showBanner, setShowBanner] = useState(false);
+    const [isDetailsAvailable, setDetailsAvailable] = useState(false);
+
+    const navigate = useNavigate();
 
     const closeBanner = () => {
-        SetBannerClose(true);
+        setBannerClose(true);
     }
 
     useEffect(() => {
@@ -32,9 +35,13 @@ function AppLayout() {
             } else {
               // ✅ User profile complete
               setShowBanner(false);
+              setDetailsAvailable(true);
             }
           } catch (err) {
             console.error("Error checking profile completeness:", err);
+            if(err?.status === 403) {
+                navigate('/403');
+            }
           }
         };
 
@@ -52,7 +59,7 @@ function AppLayout() {
                     <AppHeader />
                     <Routes>
                         <Route path="/" element={<Navigate to="/app/dashboard" />} />
-                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/dashboard" element={<Dashboard isDetailsAvailable={isDetailsAvailable} setShowBanner={setShowBanner} setBannerClose={setBannerClose}/>}/>
                         <Route path="/profile" element={<Profile/>} />
                         <Route path="/wallet" element={<Wallet />}/>
                     </Routes>
