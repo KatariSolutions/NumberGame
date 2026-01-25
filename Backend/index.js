@@ -31,7 +31,7 @@ app.set('trust proxy', false);
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cors({
-    origin: ["http://localhost:3000", "http://localhost:3001"], // your frontend port
+    origin: ["http://localhost:3000", "http://localhost:3001", "https://numbergame-h9sc.onrender.com"], // your frontend port
     methods: ["GET", "POST"],
     allowedHeaders: "*",
     credentials: true,
@@ -54,7 +54,7 @@ app.use("/api/upload", verifyToken, uploadRouter);
 
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:3001"],
+    origin: ["http://localhost:3000", "http://localhost:3001", "https://numbergame-h9sc.onrender.com"],
     methods: ["GET", "POST"],
   },
   pingTimeout: 60000,
