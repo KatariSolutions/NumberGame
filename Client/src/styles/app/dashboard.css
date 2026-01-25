@@ -8,7 +8,7 @@
 /* Card styling */
 .dashboard-card {
   width: 320px;
-  min-height: 180px;
+  min-height: 220px;
   background: linear-gradient(
       rgba(0, 0, 0, 0.45),
       rgba(0, 0, 0, 0.45)
@@ -176,12 +176,13 @@
     font-size: 16px;
   }
 }
-@media (max-width:575px) {
+@media (max-width:600px) {
   .dashboard-outer {
     padding: 16px;
   }
 
   .dashboard-card {
     width: 100%;
+    min-height: 220px;
   }
 }
