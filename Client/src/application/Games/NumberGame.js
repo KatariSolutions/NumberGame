@@ -108,7 +108,7 @@ function NumberGame() {
     fetchWalletBalance();
 
     // Connect to backend
-    const socket = io("http://localhost:8080", {
+    const socket = io("https://numbergameserver.onrender.com", {
       auth: { token: `Bearer ${token}` },
     });
     socketRef.current = socket;
