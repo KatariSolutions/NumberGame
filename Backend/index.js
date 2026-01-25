@@ -135,8 +135,10 @@ io.on("connection", (socket) => {
     io.server = server;
     // store reference on io so handlers can reference the session engine
     io.gameSession = gameSession;
-    server.listen(config.port || 8080, '127.0.0.1', () => {
-      console.log(`App listening at http://localhost:${config.port || 8080}`);
+
+    const PORT = process.env.PORT || 8080;
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log(`App listening at http://localhost:${PORT || 8080}`);
     });
   } catch (err) {
     console.error('Startup error', err);

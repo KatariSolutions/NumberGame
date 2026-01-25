@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL='http://localhost:8080/api'
+const BASE_URL='https://numbergameserver.onrender.com/api'
 const endpoint = BASE_URL+'/user/update-profile';
 
 export const updateProfileDetailsAPI = async (payload, token) => {
