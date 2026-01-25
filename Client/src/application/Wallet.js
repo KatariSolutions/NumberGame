@@ -1,13 +1,18 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { toast } from "react-toastify";
-import { IoAdd, IoArrowDown, IoArrowUp, IoFilter } from "react-icons/io5";
+import { IoAdd, IoArrowDown, IoArrowUp, IoFilter,IoCameraOutline, IoClose } from "react-icons/io5";
+import { IoIosInformationCircleOutline } from "react-icons/io";
 import { getWalletBalanceAPI } from "../apis/wallet/getWalletBalanceAPI";
 import { getWalletTransactionsAPI } from "../apis/wallet/getWalletTransactionsAPI";
-import { withdrawWalletAPI } from "../apis/wallet/withdrawWalletAPI";
-import { addFundsWalletAPI } from "../apis/wallet/addFundsWalletAPI";
+import { withdrawWalletRequestAPI } from "../apis/walletRequests/withdrawWalletRequestAPI";
+import { rechargeWalletRequestAPI } from "../apis/walletRequests/rechargeWalletRequestAPI";
+import { getActiveWalletRequestsAPI } from "../apis/walletRequests/getActiveWalletRequestsAPI";
 import { useNavigate } from "react-router-dom";
+import { getBankDetailsAPI } from "../apis/bank/getBankDetailsAPI";
 
 function Wallet() {
+  const navigate = useNavigate();
+
   const [userId, setUserId] = useState("");
   const [token, setToken] = useState("");
   const [balance, setBalance] = useState(0);
@@ -19,7 +24,12 @@ function Wallet() {
   const [filters, setFilters] = useState({ txn_type: "ALL", start_date: "", end_date: "" });
   const [loading, setLoading] = useState(false);
 
-  const navigate = useNavigate();
+  const [pendings, setPendings] = useState({});
+  const [hasBankDetails, setHasBankDetails]= useState(true);
+
+  const fileInputRef = useRef(null);
+  const [paymentImage, setPaymentImage] = useState(null);
+  const [imageError, setImageError] = useState("");
 
   // Load user credentials
   useEffect(() => {
@@ -40,6 +50,14 @@ function Wallet() {
       const res = await getWalletBalanceAPI(userId, token);
       if (res.status === 201) {
         setBalance(res.result?.balance || 0);
+      } else if (res.status === 403) {
+        toast.error(res.message);
+        navigate('/403');
+      } else if (res.status === 401) {
+        toast.error(res.message);
+        navigate('/401');
+      } else {
+        toast.error(res.message);
       }
     } catch (err) {
       toast.error("Failed to fetch wallet balance.");
@@ -48,6 +66,9 @@ function Wallet() {
       }
       if(err?.status === 401) {
         navigate('/401');
+      }
+      if(err?.status === 500) {
+        navigate('/500')
       }
     }
   };
@@ -59,8 +80,15 @@ function Wallet() {
       const res = await getWalletTransactionsAPI(userId, token, filters.txn_type, filters.start_date, filters.end_date);
       if (res.status === 201) {
         setTransactions(res.result || []);
+      } else if (res.status === 403) {
+        toast.error(res.message);
+        navigate('/403');
+      } else if (res.status === 401) {
+        toast.error(res.message);
+        navigate('/401');
       } else {
         setTransactions([]);
+        toast.error(res.message);
       }
     } catch (err) {
       toast.error("Failed to fetch transactions.");
@@ -70,24 +98,94 @@ function Wallet() {
       if(err?.status === 401) {
         navigate('/401');
       }
+      if(err?.status === 500) {
+        navigate('/500')
+      }
     } finally {
       setLoading(false);
     }
   };
 
+    // Fetch Transactions
+  const fetchActiveWalletRequests = async () => {
+    try {
+      const res = await getActiveWalletRequestsAPI(userId, token);
+      if (res.status === 201) {
+        setPendings(res.result[0] || {});
+      } else if (res.status === 403) {
+        toast.error(res.message);
+        navigate('/403');
+      } else if (res.status === 401) {
+        toast.error(res.message);
+        navigate('/401');
+      } else {
+        setPendings({});
+        toast.error(res.message);
+      }
+    } catch (err) {
+      toast.error("Failed to fetch wallet requests.");
+      if(err?.status === 403) {
+        navigate('/403');
+      }
+      if(err?.status === 401) {
+        navigate('/401');
+      }
+      if(err?.status === 500) {
+        navigate('/500')
+      }
+    }
+  };
+
+  // fetch bank details
+  const fetchBankDetails = async () => {
+    try{
+      const res = await getBankDetailsAPI(token, userId);
+      if (res.status === 209) {
+        setHasBankDetails(false)
+      } else if (res.status === 403) {
+        toast.error(res.message);
+        navigate('/403');
+      } else if (res.status === 401) {
+        toast.error(res.message);
+        navigate('/401');
+      } else {
+        toast.error(res.message);
+      }
+    } catch (err) {
+      toast.error("Failed to fetch bank details.");
+      if(err?.status === 403) {
+        navigate('/403');
+      }
+      if(err?.status === 401) {
+        navigate('/401');
+      }
+      if(err?.status === 500) {
+        navigate('/500')
+      }
+    }
+  }
+
   // Initial load
   useEffect(() => {
     if (userId && token) {
       fetchWalletBalance();
+      fetchActiveWalletRequests();
       fetchTransactions();
+      fetchBankDetails();
     }
   }, [userId, token]);
 
+  {/*
   // Auto refresh every minute
   useEffect(() => {
-    const interval = setInterval(() => fetchWalletBalance(), 60000);
+    const interval = setInterval(() => {
+      fetchWalletBalance();
+      fetchActiveWalletRequests();
+      fetchTransactions();
+     }, 60000);
     return () => clearInterval(interval);
   }, [userId, token]);
+  */}
 
   // amount watcher
   useEffect(() => {
@@ -104,14 +202,19 @@ function Wallet() {
     if (!amount || amount <= 0 || amount > 50000) return toast.warn("Enter valid amount!");
     if (amount > balance) return toast.error("Insufficient balance!");
     try {
-      const res = await withdrawWalletAPI(userId, token, amount, 'XYZ12345', 'SELF');
+      const res = await withdrawWalletRequestAPI(userId, token, amount);
       //console.log(res)
       if (res.status === 201) {
-        toast.success("Withdrawal successful! will be credited to your Bank Account soon.");
+        toast.success(res.message);
         setShowWithdrawModal(false);
-        fetchWalletBalance();
-        fetchTransactions();
+        fetchActiveWalletRequests();
         setAmount('');
+      } else if (res.status === 403) {
+        toast.error(res.message);
+        navigate('/403');
+      } else if (res.status === 401) {
+        toast.error(res.message);
+        navigate('/401');
       } else {
         toast.error(res.message || "Withdraw failed!");
       }
@@ -123,21 +226,79 @@ function Wallet() {
       if(err?.status === 401) {
         navigate('/401');
       }
+      if(err?.status === 500) {
+        navigate('/500')
+      }
+    }
+  };
+
+  const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setImageError("Only image files are allowed");
+      e.target.value = null;
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      setImageError("Image size must be less than 5MB");
+      e.target.value = null;
+      return;
+    }
+
+    setImageError("");
+    setPaymentImage(file);
+  };
+
+  const handleCameraClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleRemoveImage = () => {
+    setPaymentImage(null);
+    setImageError("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = null; // important
     }
   };
 
   // Add Funds Handler
   const handleAddFunds = async () => {
+    if (!paymentImage) {
+      setImageError("Payment screenshot is mandatory");
+      return;
+    }
+
     if (!amount || amount <= 0 || amount > 50000) return toast.warn("Enter valid amount!");
+
+    const request_type='DEPOSIT'
+
+    const formData = new FormData();
+    formData.append("amount", amount);
+    formData.append("user_id", userId);
+    formData.append("request_type", request_type);
+    formData.append("image", paymentImage);
+    
     try {
-      const res = await addFundsWalletAPI(userId, token, amount, 'ABC12345', 'SELF');
-      //console.log(res);
+      const res = await rechargeWalletRequestAPI(formData, token);
+      console.log(res);
       if (res.status === 201) {
-        toast.success("Funds added successfully!");
+        toast.success("Request sent! will reflect in your wallet shortly.");
         setShowAddModal(false);
-        fetchWalletBalance();
-        fetchTransactions();
+        fetchActiveWalletRequests();
         setAmount('');
+        handleRemoveImage();
+      } else if (res.status === 403) {
+        toast.error(res.message);
+        navigate('/403');
+      } else if (res.status === 401) {
+        toast.error(res.message);
+        navigate('/401');
       } else {
         toast.error(res.message || "Add funds failed!");
       }
@@ -148,6 +309,9 @@ function Wallet() {
       }
       if(err?.status === 401) {
         navigate('/401');
+      }
+      if(err?.status === 500) {
+        navigate('/500')
       }
     }
   };
@@ -174,12 +338,42 @@ function Wallet() {
       <div className="wallet-balance-card">
         <h3>Wallet Balance</h3>
         <p className="balance">₹ {balance.toFixed(2)}</p>
+        {
+          pendings && Object.keys(pendings).length > 0 && <p className="pending-status-box">
+            <IoIosInformationCircleOutline size={16}/>
+            {
+              pendings?.request_type === 'DEPOSIT'
+              ? `A deposit of ₹${pendings?.amount} is still pending.`
+              : `A withdraw request of ₹${pendings?.amount} is pending.`
+            }
+          </p>
+        }
+        {
+          !hasBankDetails && <p className="pending-status-box">
+            <IoIosInformationCircleOutline size={16}/>
+            Please update your bank details.
+          </p>
+        }
         <div className="wallet-actions">
-          <button className="withdraw-btn" onClick={() => setShowWithdrawModal(true)}>
+          <button className="withdraw-btn" onClick={() => {
+            if(!hasBankDetails){
+              toast.error('Please update your bank details.')
+            } else {
+              setShowWithdrawModal(true);
+            }
+          }}>
             <IoArrowDown /> Withdraw
           </button>
-          <button className="add-funds-btn" onClick={() => setShowAddModal(true)}>
+          <button className="add-funds-btn" 
+            onClick={() => setShowAddModal(true)}
+            disabled={(pendings && Object.keys(pendings).length > 0)}
+          >
             <IoAdd /> Add Funds
+          </button>
+          <button className="view-history-btn"
+            onClick={() => navigate('/app/wallet/history')}
+          >
+            View History
           </button>
         </div>
       </div>
@@ -250,7 +444,7 @@ function Wallet() {
       </div>
 
       {/* Withdraw Modal */}
-      {showWithdrawModal && (
+      {showWithdrawModal && hasBankDetails && (
         <div className="modal">
           <div className="modal-content">
             <h3>Withdraw Funds</h3>
@@ -262,8 +456,8 @@ function Wallet() {
               onChange={(e) => setAmount(e.target.value)}
             />
             <div className="modal-actions">
-              <button onClick={handleWithdraw} disabled={amountError}>Withdraw</button>
               <button onClick={() => removeModels()}>Cancel</button>
+              <button onClick={handleWithdraw} disabled={amountError}>Withdraw</button>
             </div>
           </div>
         </div>
@@ -274,6 +468,52 @@ function Wallet() {
         <div className="modal">
           <div className="modal-content">
             <h3>Add Funds</h3>
+
+            <div className="payment-steps">
+              <div className="step step-1">
+                <div><span>1</span></div>
+                <p>Send money through any <b>UPI</b> App for the mobile number : <b>+91 xxxx xxxxx</b></p>
+              </div>
+              <div className="step step-2">
+                <div><span>2</span></div>
+                <p>Take screenshot of the payment done. And <b>upload</b> below.</p>
+              </div>
+              <div className="step step-3">
+                <div><span>3</span></div>
+                <p>Enter the same amount you paid in the below box and click <b>Add Funds</b> button.</p>
+              </div>
+            </div>
+
+            {/* Upload Screenshot */}
+            <div className="upload-proof">
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                onChange={handleImageSelect}
+                style={{ display: "none" }}
+              />
+
+              {!paymentImage ? (
+                <div className="upload-box" onClick={handleCameraClick}>
+                  <IoCameraOutline size={16} />
+                  <p>Upload payment screenshot</p>
+                </div>
+              ) : (
+                <div className="uploaded-preview">
+                  <span className="file-name">📷 {paymentImage.name}</span>
+                  <IoClose
+                    className="remove-icon"
+                    onClick={handleRemoveImage}
+                  />
+                </div>
+              )}
+
+              {imageError && (
+                <p className="msg-img-err">{imageError}</p>
+              )}
+            </div>
+
             {amountError && <p className="msg-amt-err">Amount must be between 100 and 50,000.</p>}
             <input
               type="number"
@@ -282,8 +522,8 @@ function Wallet() {
               onChange={(e) => setAmount(e.target.value)}
             />
             <div className="modal-actions">
-              <button onClick={handleAddFunds} disabled={amountError}>Add Funds</button>
               <button onClick={() => removeModels()}>Cancel</button>
+              <button onClick={handleAddFunds} disabled={amountError || !paymentImage}>Add Funds</button>
             </div>
           </div>
         </div>

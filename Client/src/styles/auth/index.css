@@ -60,6 +60,11 @@
 .registration-inner .error-msg.red{
     color: var(--bg-crimson);
 }
+.registration-inner .warn-msg{
+    font-size: var(--font-sm);
+    color: var(--tint-gray-700);
+    margin-bottom: .5rem;
+}
 .registration-inner .success-container{
     width: 100%;
     max-width: 240px;

@@ -2,15 +2,17 @@
 @import url('./components/CustomLoader.css');
 @import url('./components/CustomBanner.css');
 @import url('./components/AppHeader.css');
+@import url('./components/BankDetails.css');
 @import url('./auth/index.css');
 @import url('./app/index.css');
 @import url('./app/profile.css');
 @import url('./app/dashboard.css');
 @import url('./app/wallet.css');
+@import url('./app/history.css');
 @import url('./games/NumberGame.css');
 @import url('./games/DiceRoll.css');
 @import url('./games/GameSummary.css');
-
+@import url('./app/landingpage.css');
 /* your other styles */
 body {
   font-family: var(--font-family-primary);

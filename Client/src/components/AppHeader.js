@@ -9,6 +9,7 @@ import {
   IoLogOut,
   IoWallet
 } from 'react-icons/io5';
+import { LuHistory } from "react-icons/lu";
 import { deactivateSessionAPI } from '../apis/auth/deactivateSessionAPI';
 import { toast } from 'react-toastify';
 
@@ -37,6 +38,12 @@ function AppHeader() {
         sessionStorage.removeItem("userId");
 
         navigate("/auth/login");
+      } else if (res.status === 403) {
+        toast.error(res.message);
+        navigate('/403');
+      } else if (res.status === 401) {
+        toast.error(res.message);
+        navigate('/401');
       } else {
         toast.error("Failed to deactivate session:");
       }
@@ -48,13 +55,16 @@ function AppHeader() {
       if(err?.status === 401) {
         navigate('/401');
       }
-      navigate("/500")
+      if(err?.status === 500) {
+        navigate('/500')
+      }
     }
   };
 
   const menuItems = [
     { label: 'Play', icon: <IoPlayCircle />, action: () => navigate('/app/dashboard') },
     { label: 'Profile', icon: <IoPersonCircle />, action: () => navigate('/app/profile') },
+    { label: 'History', icon: <LuHistory />, action: () => navigate('/app/history') },
     { label: 'Wallet', icon: <IoWallet />, action: () => navigate('/app/wallet') },
     { label: 'Logout', icon: <IoLogOut />, action: handleLogout }
   ];
@@ -109,6 +119,20 @@ function AppHeader() {
           </div>
         </div>
       )}
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="mobile-footbar">
+        {menuItems.map((item, idx) => (
+          <button
+            key={idx}
+            onClick={item.action}
+            className="footbar-item"
+          >
+            {item.icon}
+            <span>{item.label}</span>
+          </button>
+        ))}
+      </nav>
     </>
   );
 }

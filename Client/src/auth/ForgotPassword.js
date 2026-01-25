@@ -65,10 +65,10 @@ function ForgotPassword() {
             setStep(2);
             setIsFetching(false);
           } else {
-            toast.error(res.error);
+            toast.error(res.message);
             setIsFetching(false);
             setIsServerError(true);
-            setServerStatus(res.error);
+            setServerStatus(res.message);
           }
         } catch (err) {
           console.log(err);
@@ -93,8 +93,9 @@ function ForgotPassword() {
         return;
       } else {
         try{
-          const payload = {user_id:user_id, email_otp:data.otp};
+          const payload = {user_id:user_id, email_otp:data.otp, type:'forgot-password'};
           const res = await verifyAPI(payload);
+          console.log('Verify API : ', res);
           if(res.status === 201) {
             toast.success('Verified Successfully!');
 
@@ -102,11 +103,11 @@ function ForgotPassword() {
             setStep(3);
             setIsFetching(false);
           } else {
-            toast.error(res.error);
+            toast.error(res.message);
 
             setIsFetching(false);
             setIsServerError(true);
-            setServerStatus(res.error);
+            setServerStatus(res.message);
           }
         } catch (err) {
           console.log(err);
@@ -141,10 +142,10 @@ function ForgotPassword() {
               navigate('/auth/login');
             },2000)
           } else {
-            toast.error(res.error);
+            toast.error(res.message);
             setIsFetching(false);
             setIsServerError(true);
-            setServerStatus(res.error);
+            setServerStatus(res.message);
           }
         } catch (err) {
           console.log(err);

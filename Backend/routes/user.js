@@ -15,7 +15,7 @@ userRouter.get('/all', async (req, res) => {
     res.status(201).json({ status:201, message: 'success', result: result.recordset });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ status : 500, error: 'Server error' });
+    res.status(500).json({ status : 500, message: 'Server error' });
   }
 });
 
@@ -29,7 +29,7 @@ userRouter.post('/update-profile', async (req, res) => {
     const formattedDob = dob ? new Date(dob) : null;
 
     if (!user_id) {
-      return res.status(401).json({ status:401, error: 'User ID is required' });
+      return res.status(209).json({ status:209, message: 'User ID is required' });
     }
 
     // Check if a profile already exists
@@ -78,7 +78,7 @@ userRouter.post('/update-profile', async (req, res) => {
     }
   } catch (err) {
     console.error(err);
-    res.status(500).json({ status : 500, error: 'Server error' });
+    res.status(500).json({ status : 500, message: 'Server error' });
   }
 });
 
@@ -90,7 +90,7 @@ userRouter.post('/userdetailsavailable', async (req, res) => {
     const { user_id } = req.body;
 
     if (!user_id) {
-      return res.status(401).json({ status : 401, error: 'User ID is required' });
+      return res.status(209).json({ status : 209, message: 'User ID is required' });
     }
 
     // Fetch user profile details
@@ -104,7 +104,7 @@ userRouter.post('/userdetailsavailable', async (req, res) => {
 
     if (result.recordset.length === 0) {
       // No profile exists
-      return res.status(209).json({ status : 209, message: false });
+      return res.status(201).json({ status : 201, message: false });
     }
 
     const profile = result.recordset[0];
@@ -123,10 +123,61 @@ userRouter.post('/userdetailsavailable', async (req, res) => {
     }
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
+// ✅ Get users for admin
+userRouter.get('/getUsersForAdmin', async (req, res) => {
+  try {
+    await poolConnect;
+
+    const result = await pool.request()
+      .query(`
+        select u.user_id, u.email, up.full_name, u.phone, CONVERT(VARCHAR, CONVERT(DATE, u.created_at)) as created_at, u.is_verified, u.is_active, u.is_admin,
+        	MAX(up.avatar_url) as avatar_url, COUNT(DISTINCT session_id) as games_played, SUM(COALESCE(amount,0)) as total_put, SUM(COALESCE(payout,0)) as total_won
+        from users u
+        left join user_profiles up on up.user_id = u.user_id
+        left join session_user_results su on su.user_id = u.user_id
+        group by u.user_id, u.email, up.full_name, u.phone, CONVERT(VARCHAR, CONVERT(DATE, u.created_at)), u.is_verified, u.is_active, u.is_admin
+        order by CONVERT(VARCHAR, CONVERT(DATE, u.created_at)) desc
+      `);
+
+    res.status(201).json({ status:201, message: 'success', result: result.recordset });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ status : 500, message: 'Server error' });
+  }
+});
+
+// Mark user in-active
+userRouter.post('/toggleactive', async (req, res) => {
+  try {
+    await poolConnect;
+
+    const { user_id, is_active } = req.body;
+
+    if (!user_id) {
+      return res.status(209).json({ status : 209, message: 'User ID is required' });
+    }
+
+    const new_status = is_active ? 0 : 1
+    // Update user status
+    await pool.request()
+      .input('user_id', user_id)
+      .input('new_status', new_status)
+      .query(`
+        UPDATE users
+        SET is_active=@new_status
+        WHERE user_id=@user_id
+      `);
+    
+    return res.status(201).json({ status : 201, message: 'Updated successfully!' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 // ✅ Get user by ID (must be placed after /update-profile)
 userRouter.post('/:id', async (req, res) => {
@@ -141,7 +192,7 @@ userRouter.post('/:id', async (req, res) => {
     //console.log('loggedInId : ',loggedInId);
 
     if (!loggedInId || userId !== loggedInId) {
-      return res.status(401).json({ status : 401, message: 'Forbidden: Cannot access other user data' });
+      return res.status(209).json({ status : 209, message: 'Forbidden: Cannot access other user data' });
     }
 
     const result = await pool.request()
@@ -150,13 +201,13 @@ userRouter.post('/:id', async (req, res) => {
 
     //console.log(result)
     if (result.recordset.length === 0) {
-      return res.status(401).json({ status : 401, message: 'User not found' });
+      return res.status(209).json({ status : 209, message: 'User not found' });
     }
 
     res.status(201).json({ status:201, message: 'success', result: result.recordset[0] });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ status : 500, error: 'Server error' });
+    res.status(500).json({ status : 500, message: 'Server error' });
   }
 });
 

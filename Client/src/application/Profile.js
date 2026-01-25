@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { IoPencil, IoWallet, IoTimeOutline, IoAdd, IoRefresh } from "react-icons/io5";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { IoPencil, IoWallet, IoTimeOutline, IoAdd, IoRefresh } from "react-icons/io5";
+import { MdEdit } from "react-icons/md";
+import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { toast } from "react-toastify";
 
 import { getProfileDetailsAPI } from "../apis/user/getProfileDetailsAPI";
@@ -8,10 +10,16 @@ import { updateProfileDetailsAPI } from "../apis/user/updateProfileDetailsAPI";
 import { getWalletBalanceAPI } from "../apis/wallet/getWalletBalanceAPI";
 import { getWalletTransactionsAPI } from "../apis/wallet/getWalletTransactionsAPI";
 import { getBidsbyUserIdAPI } from "../apis/bids/getBidsByUserIdAPI";
+import { uploadProfile } from "../apis/upload/uploadProfile";
+
+import BankDetails from "../components/BankDetails";
 //import defaultAvatar from "../gallery/default-avatar.png";
+
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 
 function Profile() {
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
 
   const [user_id,setUserId] = useState(0);
   const [token, setToken] = useState('');
@@ -33,8 +41,10 @@ function Profile() {
   });
 
   const [bids, setBids] = useState([]);
-
   const [isEditing, setIsEditing] = useState(false);
+
+  const [imgError, setImgError] = useState("");
+  const [imageLoad, setImageLoad] = useState(false);
 
   // Get user_id and token from localstorage/sessionstorage
   useEffect(() => {
@@ -80,6 +90,14 @@ function Profile() {
         }
 
         setProfile(userData);
+      } else if (res.status === 403) {
+        toast.error(res.message);
+        navigate('/403');
+      } else if (res.status === 401) {
+        toast.error(res.message);
+        navigate('/401');
+      } else {
+        toast.error(res.message);
       }
     } catch (err) {
       console.error(err);
@@ -88,6 +106,9 @@ function Profile() {
       }
       if(err?.status === 401) {
         navigate('/401');
+      }
+      if(err?.status === 500) {
+        navigate('/500')
       }
     }
   };
@@ -100,8 +121,14 @@ function Profile() {
       if(res.status==201){
         const WB = res.result?.balance || 0;
         setWalletBalance(WB);
+      } else if (res.status === 403) {
+        toast.error(res.message);
+        navigate('/403');
+      } else if (res.status === 401) {
+        toast.error(res.message);
+        navigate('/401');
       } else {
-        toast.error("Failed to fetch wallet balance. Try again later!")
+        toast.error(res.message);
       }
     } catch (err) {
       console.log(err);
@@ -111,29 +138,41 @@ function Profile() {
       if(err?.status === 401) {
         navigate('/401');
       }
+      if(err?.status === 500) {
+        navigate('/500')
+      }
     }
   }
+  
   useEffect(() => {
     if (!user_id || !token) return; // wait until both are available
     // Initial fetch
     fetchWalletBalance();
+    /*
     // Set up interval for every 60 seconds
     const interval = setInterval(() => {
       fetchWalletBalance();
     }, 60000); // 60,000 ms = 1 minute
     // Cleanup on component unmount
     return () => clearInterval(interval);
+    */
   }, [user_id, token]);
 
   const fetchWalletData = async () => {
     try {
       const res = await getWalletTransactionsAPI(user_id, token);
-      console.log(res)
+      //console.log(res)
       if(res.status==201){
         const wallet = res.result || {};
         setWallet(wallet);
+      } else if (res.status === 403) {
+        toast.error(res.message);
+        navigate('/403');
+      } else if (res.status === 401) {
+        toast.error(res.message);
+        navigate('/401');
       } else {
-        toast.error("Failed to fetch wallet transactions. Try again later!")
+        toast.error(res.message);
       }
     } catch (err) {
       console.log(err);
@@ -142,6 +181,9 @@ function Profile() {
       }
       if(err?.status === 401) {
         navigate('/401');
+      }
+      if(err?.status === 500) {
+        navigate('/500')
       }
     }
   };
@@ -154,6 +196,14 @@ function Profile() {
       if(res.status==201){
         const bidsData = res.result;
         setBids(bidsData);
+      } else if (res.status === 403) {
+        toast.error(res.message);
+        navigate('/403');
+      } else if (res.status === 401) {
+        toast.error(res.message);
+        navigate('/401');
+      } else {
+        toast.error(res.message);
       }
     } catch (err) {
       console.error(err);
@@ -162,6 +212,9 @@ function Profile() {
       }
       if(err?.status === 401) {
         navigate('/401');
+      }
+      if(err?.status === 500) {
+        navigate('/500')
       }
     }
   };
@@ -182,6 +235,70 @@ function Profile() {
     console.log('profile : ',profile);
   },[profile])
   */
+
+  const uploadImage = async (file) => {
+    try{
+        if (!file) return;
+
+        setImageLoad(true);
+        const formData = new FormData();
+        formData.append("image", file);
+        formData.append("user_id", user_id);
+    
+        const res = await uploadProfile(formData, token);
+        // console.log(res);
+        if (res.status === 201) {
+          toast.success(res.message);
+          fetchProfileData();
+        } else if (res.status === 403) {
+          toast.error(res.message);
+          navigate('/403');
+        } else if (res.status === 401) {
+          toast.error(res.message);
+          navigate('/401');
+        } else {
+          toast.error(res.message);
+        }
+    } catch (err) {
+        if(err?.status === 403) {
+            navigate('/403');
+        }
+        if(err?.status === 401) {
+            navigate('/401');
+        }
+        if(err?.status === 500) {
+          navigate('/500')
+        }
+    } finally {
+      setImageLoad(false);
+    }
+  };
+
+  const handleIconClick = () => {
+    if (!imageLoad) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+
+    if (!selectedFile) return;
+
+    if (selectedFile.size > MAX_FILE_SIZE) {
+      setImgError("File size must be less than 2MB");
+      e.target.value = null; // reset input
+      return;
+    }
+
+    if (!selectedFile.type.startsWith("image/")) {
+      setImgError("Only image files are allowed");
+      e.target.value = null;
+      return;
+    }
+
+    uploadImage(selectedFile);
+  };
 
   const handleEditToggle = () => setIsEditing(!isEditing);
 
@@ -209,8 +326,14 @@ function Profile() {
       if (res.status == 201) {
         toast.success(res.message);
         fetchProfileData(); // Refresh profile details after update
+      } else if (res.status === 403) {
+        toast.error(res.message);
+        navigate('/403');
+      } else if (res.status === 401) {
+        toast.error(res.message);
+        navigate('/401');
       } else {
-        toast.warn("Something went wrong! Try again later.");
+        toast.error(res.message);
       }
     } catch (err) {
       console.error("Error updating profile:", err);
@@ -220,6 +343,9 @@ function Profile() {
       }
       if(err?.status === 401) {
         navigate('/401');
+      }
+      if(err?.status === 500) {
+        navigate('/500')
       }
     }
   };
@@ -238,19 +364,38 @@ function Profile() {
         <div>
           <div className="profile-avatar">
             <div className="img-holder">
-                <img
-                  src={profile.avatar_url}
+              {
+                profile?.avatar_url
+                ? <img
+                  src={profile?.avatar_url}
                   alt="Avatar"
                   width={120}
                   height={120}
                   className="avatar-img"
                 />
+                : <h1>{profile?.full_name && profile?.full_name[0].toLocaleUpperCase()}</h1>
+              }
             </div>
-            <button className="add-btn">
-              <IoAdd />
+            <button className="add-btn" disabled={imageLoad}>
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                style={{ display: "none" }}
+              />
+              {imageLoad ? (
+                <AiOutlineLoading3Quarters
+                  className="img-spinner"
+                />
+              ) : (
+                <IoAdd
+                  onClick={handleIconClick}
+                  style={{ cursor: "pointer" }}
+                />
+              )}
             </button>
           </div>
-          <button className={`edit-btn-new ${isEditing && 'enabled'}`} onClick={handleEditToggle}>Edit Profile</button>
         </div>
 
         <div className="profile-details">
@@ -275,6 +420,7 @@ function Profile() {
             />
           </div>
 
+          {/*
           <div className="detail-item">
             <label>Date of Birth</label>
             <input
@@ -307,14 +453,20 @@ function Profile() {
               disabled={!isEditing}
             />
           </div>
+          */}
 
-          {isEditing && (
-            <button className="save-btn" onClick={handleSave}>
-              Save Changes
-            </button>
-          )}
+          {isEditing 
+            ? (
+              <button className="save-btn" onClick={handleSave}>
+                Save Changes
+              </button>
+            ) 
+            : <button className={`edit-btn-new ${isEditing && 'enabled'}`} onClick={handleEditToggle}>Edit details <MdEdit /></button>
+          }
         </div>
       </div>
+
+      <BankDetails />
 
       {/* 💰 Wallet Info */}
       <div className="wallet-section">
@@ -354,15 +506,15 @@ function Profile() {
           <table className="bids-table">
             <thead>
               <tr>
-                <th>Id</th>
-                <th>Bid</th>
+                <th>Date</th>
+                <th>Bid Amount</th>
                 <th>Profit/Loss</th>
               </tr>
             </thead>
             <tbody>
               {bids.slice(0, 5).map((bid) => (
                 <tr key={bid.session_id}>
-                  <td>{bid.session_id}</td>
+                  <td>{new Date(bid.results_declared_date).toLocaleDateString()}</td>
                   <td>₹{bid.bid_placed}</td>
                   <td>{bid.PnL > 0 ? '+'+bid.PnL : bid.PnL}</td>
                 </tr>

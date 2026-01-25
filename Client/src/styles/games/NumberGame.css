@@ -243,6 +243,16 @@
 .session-timer h3{
     text-align: center;
 }
+.session-timer > p {
+  width: auto;
+  font-size: 10px;
+  text-align: center;
+  padding: .2rem;
+  margin-top: .5rem;
+  color: var(--bg-light);
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 5px;
+}
 .game-upper-body .bid-pop{
     width: 160px;
     background-color: var(--bg-light);
@@ -281,10 +291,35 @@
     font-size: var(--font-md);
 }
 
+.game-upper-body{
+  position: relative;
+}
+
+.game-stats{
+  padding: 6px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: var(--font-secondary);
+  font-size: 10px;
+  font-weight: var(--wt-bold);
+  border-radius: 6px;
+
+  position: absolute;
+  bottom: 20px;
+  left: 10px;
+
+  z-index: 2;
+}
+.roulette-img{
+  width: 180px;
+  height: 180px;
+
+  position: absolute;
+  bottom: -30px;
+}
 
 .game-body .game-lower-body{
     width: 100%;
-    height: 60%;
+    height: 50%;
     min-height: calc(60vh - 25px);
 }
 .game-lower-body .game-board-outer{
@@ -313,6 +348,7 @@
     border-radius: 10px;
 
     display: flex;
+    gap: 4px;
     flex-direction: row;
     align-items: center;
     justify-content: space-around;
@@ -331,6 +367,13 @@
     background-color: yellow;
     border-radius: 10px;
 
+    background: linear-gradient(
+      145deg,
+      #EFA80C,
+      #965205
+    );
+    border: 1px solid #7a4300;
+
     display: flex;
     align-items: center;
     justify-content: center;
@@ -345,6 +388,34 @@
 }
 .game-board-number h1{
     font-size: var(--font-xxl);
+    color: var(--font-primary);
+}
+.game-board-outer .game-board-all-suit{
+  width: 80%;
+  height: 40px;
+  border-radius: 10px;
+
+  background: linear-gradient(
+      145deg,
+      #EFA80C,
+      #965205
+    );
+  border: 1px solid #7a4300;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+}
+.game-board-outer .game-board-all-suit.chosen{
+  filter: brightness(0.5);
+}
+.game-board-outer .game-board-all-suit:hover{
+    filter: brightness(0.75);
+}
+.game-board-all-suit h1{
+  font-size: 1rem !important;
 }
 
 /* styles for live-pdates */
@@ -417,29 +488,114 @@
 }
 
 .game-upper-body .coins-icon-holder{
-    padding: 8px;
+    padding: 10px;
     background-color: var(--bg-secondary);
     border-radius: 6px;
     color: var(--font-primary);
     box-shadow: var(--header-shadow);
 
     position: absolute;
-    top: 100px;
+    top: 50px;
     right: 10px;
 
     display: none;
+}
+.coins-icon-holder > div{
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
+  color: var(--bg-secondary);
+  background-color: var(--font-primary);
+  border-radius: 50%;
+  
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  
+  display: flex;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+}
+
+.money-options {
+  width: 100%;
+
+  /*
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+  gap: 10px;
+  */
+
+  width: 100%;
+  display: grid;
+
+  grid-template-rows: repeat(1, auto); /* ONLY 2 ROWS */
+  grid-auto-flow: column;              /* fill rows, then add columns */
+  grid-auto-columns: minmax(40px, 1fr);
+
+  gap: 10px;
+}
+.money-options .money-card{
+  font-size: 10px;
+  font-weight: var(--wt-bold);
+  padding: 8px;
+  background-color: var(--font-primary);
+  border-radius: 5px;
+
+  background: linear-gradient(
+    135deg,
+    #f9d976 0%,
+    #f5c542 25%,
+    #d4af37 50%,
+    #f5c542 75%,
+    #f9d976 100%
+  );
+  color: #5c4300;
+}
+.money-card.disable{
+  pointer-events: none;
+  filter: brightness(0.5);
+  text-decoration: line-through;
 }
 
 /* MEDIA QUERIES */
 /* ============================================
    📱 MOBILE & TABLET RESPONSIVE STYLES
    ============================================ */
+/*
+@media (max-height: 899px) and (min-height:700px) {
+  .game-body .game-upper-body,.game-lower-body{
+    width: 100%;
+    height: 50%;
+    min-height: calc(50vh - 25px);
+  }
+  .game-body .game-lower-body{
+    width: 100%;
+    height: 50%;
+    min-height: calc(50vh - 25px);
+  }
+  .game-lower-body .game-board-outer{
+    width: 100%;
+    height: 100%;
+    min-height: calc(50vh - 25px);
+    padding: 1rem;
+  }
+}
+*/
 
 /* For screens up to 768px (tablets + mobiles) */
 @media (max-width: 768px) {
 
   .game-header {
-    height: 45px;
+    height: 50px;
     padding: 0 0.5rem;
   }
 
@@ -482,6 +638,12 @@
     justify-content: center;
     gap: 8px;
   }
+  .game-board-outer .game-board-all-suit{
+    width: 95%;
+  }
+  .money-options {
+    width: 95%;
+  }
 
   .game-board .game-board-number {
     width: 28%;
@@ -498,7 +660,7 @@
   }
 
   .bid-chip {
-    width: 140px;
+    width: 150px;
     padding: 6px 10px;
   }
 
@@ -527,19 +689,29 @@
     padding: .4rem .8rem;
     font-size: var(--font-sm);
   }
+
+  .money-options{
+    grid-template-rows: repeat(2, auto);
+    grid-auto-flow: row;              /* fill rows, then add columns */
+    grid-template-columns: repeat(5, 1fr);
+  }
 }
 
 /* For small mobile screens (below 480px) */
-@media (max-width: 500px) {
+@media (max-width: 600px) {
 
   .game-logo img {
     width: 45px;
     height: 22px;
   }
 
+  .game-board {
+    width: 100%;
+  }
+
   .game-board .game-board-number {
-    width: 42%;
-    height: 90px;
+    width: 30%;
+    height: 80px;
   }
 
   .game-board-number h1 {
@@ -548,13 +720,15 @@
 
   .game-upper-body .coins-icon-holder{
     display: block;
+    top: calc(40vh - 80px);
+    right: 20px;
   }
 
   .live-updates {
     width: 180px;
     max-height: 50px;
     font-size: var(--font-sm);
-    top: 100px !important;
+    top: 50px !important;
     left: -6px;
   }
   .live-updates.expanded{
@@ -596,10 +770,16 @@
     font-size: var(--font-sm);
   }
 
+  /*
   .bid-pop {
-    width: 120px;
-    top: 100px !important;
-
+    width: 160px !important;
+    top: 50px !important;
+  }
+  .bid-pop .bid-chip {
+    padding: 4px;
+  }
+  */
+  .bid-pop{
     display: none !important;
   }
 
@@ -638,7 +818,7 @@
   }
   .bid-modal-bids-list .bid-chip .num{
     padding: 8px;
-    max-width: 28px;
+    max-width: 40px;
   }
 
   .quit-control .quit-btn {

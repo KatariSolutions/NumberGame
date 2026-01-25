@@ -11,8 +11,7 @@ const ProtectedRoute = ({ children }) => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token =
-        localStorage.getItem("token") || sessionStorage.getItem("token");
+      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
 
       if (!token) {
         setIsVerified(false);
@@ -23,18 +22,27 @@ const ProtectedRoute = ({ children }) => {
         const res = await verifyToken({}, token);
         if (res.status === 201) {
           setIsVerified(true);
+        } else if (res.status === 403) {
+          toast.error(res.message);
+          navigate('/403');
+        } else if (res.status === 401) {
+          toast.error(res.message);
+          navigate('/401');
         } else {
           setIsVerified(false);
         }
       } catch (err) {
         console.log(err);
+        setIsVerified(false);
         if(err?.status === 403) {
           navigate('/403');
         }
         if(err?.status === 401) {
           navigate('/401');
         }
-        setIsVerified(false);
+        if(err?.status === 500) {
+          navigate('/500')
+        }
       }
     };
 

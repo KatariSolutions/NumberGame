@@ -15,15 +15,16 @@ import moment from 'moment';
 class GameSession {
   constructor(io, opts = {}) {
     this.io = io;
+    this.running = false;
 
-    this.SESSION_MINUTES = opts.totalMinutes ?? 3;
-    this.ACTIVE_MINUTES = opts.activeMinutes ?? 2;
-    this.LOCKED_MINUTES = opts.lockedMinutes ?? 0;
+    this.SESSION_MINUTES = opts.totalMinutes ?? 60; // adjust
+    this.ACTIVE_MINUTES = opts.activeMinutes ?? 40; //adjust
+    this.LOCKED_MINUTES = opts.lockedMinutes ?? 5;
     this.RESULTS_MINUTES = this.SESSION_MINUTES - this.ACTIVE_MINUTES - this.LOCKED_MINUTES;
 
-    this.SESSION_MS = this.SESSION_MINUTES * 60 * 1000;
-    this.ACTIVE_MS = this.ACTIVE_MINUTES * 60 * 1000;
-    this.LOCKED_MS = this.LOCKED_MINUTES * 60 * 1000;
+    this.SESSION_MS = this.SESSION_MINUTES * 1000;
+    this.ACTIVE_MS = this.ACTIVE_MINUTES * 1000;
+    this.LOCKED_MS = this.LOCKED_MINUTES * 1000;
     this.BATCH_WRITE_INTERVAL_MS = opts.batchWriteIntervalMs ?? 30 * 1000;
 
     // in-memory state
@@ -35,9 +36,72 @@ class GameSession {
     this.startSessionLoop();
   }
 
+  async checkIfActive() {
+    const result = await pool.request().query('SELECT TOP 1 is_active FROM game_control');
+    return result.recordset[0]?.is_active === true;
+  }
+
+  async updateResultsByAdmin(newResults = []) {
+    const s = this.current;
+    if (!s) {
+      console.warn("⚠️ No active session to update results.");
+      return { success: false, message: "No active session." };
+    }
+
+    if (s.status !== "ACTIVE") {
+      console.warn("⚠️ Cannot update results — session already locked or ended.");
+      return { success: false, message: "Cannot update results after lock." };
+    }
+
+    if (!Array.isArray(newResults) || newResults.length !== 6) {
+      return { success: false, message: "Invalid results array. Must be [6 dice values]." };
+    }
+
+    // Validate numbers
+    const valid = newResults.every(n => Number.isInteger(n) && n >= 1 && n <= 6);
+    if (!valid) {
+      return { success: false, message: "Each dice value must be between 1 and 6." };
+    }
+
+    // Update results in session
+    s.results = newResults;
+    s.resultCounts = {};
+    for (const n of newResults) {
+      s.resultCounts[n] = (s.resultCounts[n] || 0) + 1;
+    }
+
+    // Also update state for clients
+    this.emitSessionStateToAll();
+
+    return { success: true, message: "Results updated successfully." };
+  }
+
+  // not used
+  stopAllSessions() {
+    clearInterval(this.batchTimer);
+    clearInterval(this.tickInterval);
+    this.batchTimer = null;
+    this.tickInterval = null;
+    this.current = null;
+
+    this.io.to("GLOBAL_GAME_ROOM").emit("live_update", {
+      type: "SESSION",
+      message: "Game stopped by admin.",
+    });
+
+    console.log("🛑 All sessions stopped due to GameControl flag OFF");
+  }
+
   // create empty session
   createSession() {
     const now = Date.now();
+    
+    const preGeneratedResults = Array.from({ length: 6 }, () => Math.floor(Math.random() * 6) + 1);
+    const resultCounts = {};
+    for (const n of preGeneratedResults) {
+      resultCounts[n] = (resultCounts[n] || 0) + 1;
+    }
+
     return {
       sessionId: uuidv4(), // short-term id in-memory; we'll persist to DB with sequence session_id
       startedAt: now,
@@ -48,16 +112,48 @@ class GameSession {
       // bidsByUser holds *only* last bid per user (single-number rule X)
       bidsByUser: new Map(), // userId -> { chosen_number, amount, updatedAt }
       players: new Map(), // userId -> Set(socketIds)
+      results: preGeneratedResults,       // ✅ store generated results
+      resultCounts: resultCounts,
     };
   }
 
-  startSessionLoop() {
+  async startSessionLoop() {
+    // If already running timers, don't create duplicates
+    if (this.tickInterval || this.batchTimer) {
+      console.log('GameSession already running (timers present), skipping start.');
+      return;
+    }
+    const active = await this.checkIfActive();
+    if (!active) {
+      console.log('⚠️ Game is currently inactive (DB switch off).');
+      return;
+    }
+
     this.current = this.createSession();
     this.emitSessionStateToAll();
 
     this.batchTimer = setInterval(() => this.batchWriteBids(), this.BATCH_WRITE_INTERVAL_MS);
     this.tickInterval = setInterval(() => this._tick(), 1000);
     console.log('GameSession started', this.current.sessionId);
+  }
+
+  stopSessionLoop() {
+    // clear timers and set current to null (keeps persisted DB records intact)
+    if (this.batchTimer) {
+      clearInterval(this.batchTimer);
+      this.batchTimer = null;
+    }
+    if (this.tickInterval) {
+      clearInterval(this.tickInterval);
+      this.tickInterval = null;
+    }
+
+    console.log('🛑 GameSession stopped (timers cleared)');
+    this.io.to("GLOBAL_GAME_ROOM").emit("live_update", {
+      type: "SESSION",
+      message: "Game has been deactivated by admin.",
+    });
+    this.emitSessionStateToAll();
   }
 
   _serializeSessionForClient() {
@@ -84,7 +180,9 @@ class GameSession {
       remainingMs,
       remainingActiveMs,
       bidSummary: summary,
-      playersCount: s.players.size
+      playersCount: s.players.size,
+      results: s.results ?? null,          // ✅ expose pre-generated results
+      resultCounts: s.resultCounts ?? null
     };
   }
 
@@ -134,6 +232,12 @@ class GameSession {
           ? result.recordset[0].full_name
           : `User${uid}`;
 
+      if(!this.current){
+        console.log('No current session');
+        await this.startSessionLoop();
+        return;
+      }
+          
       // --- 2️⃣ Add player to current session map ---
       if (!this.current.players.has(uid)) {
         this.current.players.set(uid, new Set());
@@ -167,7 +271,6 @@ class GameSession {
     }
   }
 
-
   async handleLeave(socket) {
     const uid = socket.user?.userId;
     if (!uid) return;
@@ -187,9 +290,15 @@ class GameSession {
         result.recordset.length > 0
           ? result.recordset[0].full_name
           : `User${uid}`;
+
+      if(!this.current){
+        console.log('No current session');
+        await this.startSessionLoop();
+        return;
+      }
   
       // --- 2️⃣ Update players map ---
-      const set = this.current.players.get(uid);
+      const set = this.current?.players.get(uid);
       if (set) {
         set.delete(socket.id);
         if (set.size === 0) {
@@ -505,6 +614,7 @@ class GameSession {
       message: "Computing Results!!",
     });
 
+    /*
     // === STEP 1: Generate 6 random dice results ===
     const results = Array.from({ length: 6 }, () => Math.floor(Math.random() * 6) + 1);
 
@@ -513,6 +623,11 @@ class GameSession {
     for (const n of results) {
       resultCounts[n] = (resultCounts[n] || 0) + 1;
     }
+    */
+
+    // === STEP 1: Use pre-generated dice results from session ===
+    const results = s.results;
+    const resultCounts = s.resultCounts;
 
     console.log("🎲 Computed Results:", results, "Counts:", resultCounts);
 
@@ -528,7 +643,14 @@ class GameSession {
         const chosenNum = Number(num);
         const count = resultCounts[chosenNum] || 0;
         const amount = Number(b.amount);
-        const payout = count > 0 ? amount * count : 0;
+        
+        let payout = 0;
+        if (chosenNum === 7) {
+          const uniqueResults = Object.keys(resultCounts).length;
+          payout = uniqueResults === 6 ? amount * 6 : 0;
+        } else {
+          payout = count > 1 ? amount * count : 0;
+        }
       
         totalBid += amount;
         totalPayout += payout;
@@ -537,7 +659,7 @@ class GameSession {
           userId: BigInt(uid),
           chosenNumber: chosenNum,
           amount,
-          isWinner: count > 0 ? 1 : 0,
+          isWinner: count > 1 ? 1 : 0,
           payout,
           multiplier: count,
         });
@@ -659,18 +781,45 @@ class GameSession {
 
   // end session, cleanup and start new
   async endSessionAndStartNew() {
+    // gracefully end old session
     const old = this.current;
+    if (!old) {
+      console.log('endSessionAndStartNew called but there is no current session.');
+      return;
+    }
+
     old.status = 'ENDED';
     this.io.to("GLOBAL_GAME_ROOM").emit("live_update", {
       type: "SESSION",
       message: `Session Ended`,
     });
     this.emitSessionStateToAll();
+
     console.log('Ending session', old.sessionId);
     console.log('Ending on : ', new Date(moment.now()));
-    // clear timers if any
-    // reset in-memory and start a new session
+    
+    // clear batch timer (we will decide whether to start new ones)
     clearInterval(this.batchTimer);
+
+    // BEFORE creating a new session, check DB switch
+    let active = false;
+    try {
+      active = await this.checkIfActive();
+    } catch (err) {
+      console.error('Error checking game_control flag, defaulting to inactive.', err);
+      active = false;
+    }
+    console.log('active flag : ', active);
+    if (!active) {
+      // Do NOT start a new session. Put server in paused state.
+      this.io.to("GLOBAL_GAME_ROOM").emit("new_session", { message: "Game paused by admin" });
+      console.log('GameControl is OFF — not starting new session.');
+      // Optionally keep this.current = null to indicate no active session in memory
+      // this.current = null;
+      // this.emitSessionStateToAll();
+      return;
+    }
+
     this.current = this.createSession();
     this.batchTimer = setInterval(() => this.batchWriteBids(), this.BATCH_WRITE_INTERVAL_MS);
     this.io.to('GLOBAL_GAME_ROOM').emit('new_session', this._serializeSessionForClient());

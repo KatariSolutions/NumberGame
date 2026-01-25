@@ -18,6 +18,10 @@ dotenv.config();
 import GameSession from './GameSession.js';
 import { poolConnect } from './db.js';
 import bidsRouter from "./routes/bids.js";
+import gamesRouter from "./routes/games.js";
+import bankRouter from "./routes/bank.js";
+import walletRequestsRouter from "./routes/walletRequests.js";
+import uploadRouter from "./routes/upload.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -27,7 +31,7 @@ app.set('trust proxy', false);
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cors({
-    origin: "http://localhost:3000", // your frontend port
+    origin: ["http://localhost:3000", "http://localhost:3001"], // your frontend port
     methods: ["GET", "POST"],
     allowedHeaders: "*",
     credentials: true,
@@ -42,11 +46,15 @@ app.use("/api/auth/verify-token", verifyToken, (req,res) => {
 });
 app.use("/api/user", verifyToken, userRouter);
 app.use("/api/wallet", verifyToken, walletRouter);
+app.use("/api/walletrequests", verifyToken, walletRequestsRouter);
 app.use("/api/bids", verifyToken, bidsRouter);
+app.use("/api/games", verifyToken, gamesRouter);
+app.use("/api/bank", verifyToken, bankRouter);
+app.use("/api/upload", verifyToken, uploadRouter);
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: ["http://localhost:3000", "http://localhost:3001"],
     methods: ["GET", "POST"],
   },
   pingTimeout: 60000,
@@ -103,6 +111,11 @@ io.on("connection", (socket) => {
     console.log(`User ${socket.user.userId} left the session ${socket.id}`);
     socket.server.gameSession.handleLeave(socket);
   });
+
+  socket.on('admin_update_results', (payload) => {
+    console.log('Results updating by admin : ', payload);
+    socket.server.gameSession.updateResultsByAdmin(payload);
+  })
   
   socket.on('disconnect', (reason) => {
     console.log('disconnect');

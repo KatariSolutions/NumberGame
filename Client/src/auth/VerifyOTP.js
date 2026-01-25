@@ -53,7 +53,8 @@ function VerifyOTP() {
       // Update state with userId
       setData((prevData) => ({
         ...prevData,
-        user_id: userId
+        user_id: userId,
+        type: 'register'
       }));
     }, []);
 
@@ -79,15 +80,27 @@ function VerifyOTP() {
           if(res.status === 201) {
             setSuccess(1);
             toast.success('Verification Successful!');
+            localStorage.setItem('token',res.token);
+            localStorage.setItem('userId', res.userId);
+
+            /*
+            if(data.isChecked){
+              localStorage.setItem('token',res.token);
+              localStorage.setItem('userId', res.userId);
+            } else {
+              sessionStorage.setItem('token',res.token);
+              sessionStorage.setItem('userId', res.userId);
+            }
+            */
   
             setTimeout(()=>{
-              navigate('../login');
+              navigate('/app/dashboard');
             }, 3000)
           } else {
-            toast.error(res.error);
+            toast.error(res.message);
             setIsFetching(false);
             setIsServerError(true);
-            setServerStatus(res.error);
+            setServerStatus(res.message);
           }
       } catch (err) {
         console.error(err);
@@ -99,6 +112,8 @@ function VerifyOTP() {
         }
         toast.error(err.message);
         navigate('/500');
+      } finally {
+        setIsFetching(false);
       }
     }
 
@@ -135,6 +150,7 @@ function VerifyOTP() {
                               onChange={handleChange}
                             />
                         </div>
+                        <span className='warn-msg'>Please check your spam folder also!</span>
                         <div className='button-box'>
                           {
                             isFetching

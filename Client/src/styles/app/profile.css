@@ -35,6 +35,17 @@
   height: 120px;
   border-radius: 50%;
   border: 5px solid var(--bg-secondary-dark);
+  background-color: var(--bg-primary);
+  overflow: hidden;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.img-holder h1{
+  font-size: var(--font-xxl);
+  text-align: center;
+  color: var(--bg-secondary-dark);
 }
 /*
 .avatar-img {
@@ -48,12 +59,34 @@
   position: absolute;
   bottom: 0;
   right: 10px;
+
+  width: 28px;
+  height: 28px;
   background: var(--bg-secondary-dark);
   border: none;
   color: #fff;
   border-radius: 50%;
   padding: 6px 8px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+}
+
+.add-btn .img-spinner {
+  width: 16px;
+  height: 16px;
+  animation: imgspin 1s linear infinite;
+}
+
+@keyframes imgspin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .edit-btn-new{
@@ -79,7 +112,7 @@
 
 .profile-details {
   flex: 1;
-  min-width: 250px;
+  min-width: 220px;
 }
 
 .detail-item {
@@ -183,12 +216,12 @@
 
   .profile-container {
     padding: 10px;
+    padding-bottom: 60px;
     margin: 0;
     width: 100%;
   }
 
   .profile-details {
-    min-width: 280px;
     margin-top: 1.5rem;
   }
 
@@ -202,5 +235,12 @@
 
   .wallet-balance{
     text-align: center;
+  }
+
+  .txn-table{
+    font-size: var(--font-sm);
+  }
+  .bids-section .bids-table tr th, td{
+    font-size: var(--font-sm);
   }
 }

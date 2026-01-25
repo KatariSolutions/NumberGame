@@ -9,6 +9,9 @@ import DiceRoll from "./DiceRoll";
 import { getWalletBalanceAPI } from "../../apis/wallet/getWalletBalanceAPI";
 import { toast } from "react-toastify";
 
+import image1 from '../../gallery/man-standing3.png';
+import StaticDice from "./StaticDice";
+
 function NumberGame() {
   const navigate = useNavigate();
   const socketRef = useRef(null);
@@ -47,6 +50,7 @@ function NumberGame() {
   // Dice rolling logic
   const [diceResults, setDiceResults] = useState([6, 6, 6, 6, 6, 6]);
   const [rollTrigger, setRollTrigger] = useState(false);
+  const [diceRollFinished, setDiceRollFinished] = useState(false);
 
   // === Reset for new session ===
   const resetForNewSession = () => {
@@ -60,6 +64,7 @@ function NumberGame() {
     setRollTrigger(true);
     setDiceResults([6, 6, 6, 6, 6, 6]);
     setRollTrigger(false);
+    setDiceRollFinished(false);
   };
 
   // fetch wallet balance from endpoint
@@ -158,6 +163,7 @@ function NumberGame() {
         // turn off trigger after animation completes (to allow re-triggering)
         setTimeout(() => {
           setRollTrigger(false);
+          setDiceRollFinished(true);
         }, 2500);
 
         setTimeout(()=>{
@@ -165,7 +171,7 @@ function NumberGame() {
             socket.emit("leave_session");
             navigate('/game/summary');
           }
-        },5000);
+        },7000);
       }
     });
 
@@ -249,9 +255,19 @@ function NumberGame() {
     e.preventDefault();
     if (!isActive) return;
     setChosen(number);
-    setAmount(bids[number] || ""); // preload amount if exists
-    setBidModal(true);
+    //setAmount(bids[number] || ""); // preload amount if exists
+    //setBidModal(true);
   };
+
+  // new method
+  const handleMoneyClick = (e, money) => {
+    e.preventDefault();
+    //console.log(isActive, chosen, money);
+    if(!isActive) return;
+    if(!chosen) return;
+    setAmount(money);
+    handleBid(money);
+  }
 
   const cancelBid = (e) => {
     e.preventDefault();
@@ -264,20 +280,22 @@ function NumberGame() {
   const getTotalBids = () => {
     return Object.values(bids).reduce((sum, amt) => sum + Number(amt || 0), 0);
   };
-  const handleBid = (e) => {
-    e.preventDefault();
+  const handleBid = (money) => {
+    //e.preventDefault();
     const socket = socketRef.current;
     if (!socket) return;
 
-    const userId = sessionStorage.getItem("userId") || localStorage.getItem("userId");
+    const amt = money;
 
-    if (!amount || isNaN(amount) || Number(amount) <= 0) return;
+    const userId = sessionStorage.getItem("userId") || localStorage.getItem("userId");
+    //console.log(!amt, isNaN(amt), Number(amt) <= 0)
+    if (!amt || isNaN(amt) || Number(amt) <= 0) return;
     
     const chosen_number = chosen;
     const payload = {
       userId,
       chosen_number,
-      amount: Number(amount),
+      amount: Number(amt),
     };
 
     // Emit bid to backend
@@ -285,7 +303,7 @@ function NumberGame() {
     
     setBids((prev) => ({
       ...prev,
-      [chosen]: Number(amount),
+      [chosen]: Number(amt),
     }));
     setBidModal(false);
     setChosen(null);
@@ -314,6 +332,7 @@ function NumberGame() {
   };
 
   // === Waiting Screen (no active session) ===
+  /*
   if (!isActive && !isParticipated) {
     return (
       <div className="empty-timer">
@@ -326,6 +345,7 @@ function NumberGame() {
       </div>
     );
   }
+  */
 
   // === Main Game UI ===
   return (
@@ -408,7 +428,7 @@ function NumberGame() {
               <div className="bid-modal-bids-list">
                 {Object.entries(bids).map(([num, amt]) => (
                   <div key={num} className="bid-chip">
-                    <p className="num">{num}</p>
+                    <p className="num">{num !== '7' ? num : 'All'}</p>
                     <p className="amt">Rs. {amt}/-</p>
                     {isActive && (
                       <IoTrash className="icon-trash" onClick={() => handleDeleteBid(num)} />
@@ -437,31 +457,35 @@ function NumberGame() {
       {/* Game Body */}
       <div className="game-body">
         <div className="game-upper-body">
-          <div className={`live-updates ${expanded && 'expanded'}`}>
-            <div
-              className="live-updates-header"
-              onClick={() => setExpanded((prev) => !prev)}
-            >
-              <h4>Live Updates</h4>
-              <span className="dropdown-icon">
-                {expanded ? <IoChevronUp size={18} /> : <IoChevronDown size={18} />}
-              </span>
+          {
+            /*
+            <div className={`live-updates ${expanded && 'expanded'}`}>
+              <div
+                className="live-updates-header"
+                onClick={() => setExpanded((prev) => !prev)}
+              >
+                <h4>Live Updates</h4>
+                <span className="dropdown-icon">
+                  {expanded ? <IoChevronUp size={18} /> : <IoChevronDown size={18} />}
+                </span>
+              </div>
+              <div className="live-updates-box">
+                {liveUpdates.length === 0 ? (
+                  <p className="empty">No activity yet...</p>
+                ) : (
+                  liveUpdates
+                    .slice()
+                    .reverse()
+                    .map((update, i) => (
+                      <p key={i} className={`update type-${update.type.toLowerCase()}`}>
+                        {update.message}
+                      </p>
+                    ))
+                )}
+              </div>
             </div>
-            <div className="live-updates-box">
-              {liveUpdates.length === 0 ? (
-                <p className="empty">No activity yet...</p>
-              ) : (
-                liveUpdates
-                  .slice()
-                  .reverse()
-                  .map((update, i) => (
-                    <p key={i} className={`update type-${update.type.toLowerCase()}`}>
-                      {update.message}
-                    </p>
-                  ))
-              )}
-            </div>
-          </div>
+            */
+          }
 
           <div className="session-timer">
             <h3>
@@ -469,6 +493,9 @@ function NumberGame() {
                 ? `Bidding ends in ${formatTime(activeTimeLeft)}`
                 : `Session Locked!`}
             </h3>
+            <p className="wallet-amount-watch">
+              Available wallet amount : ₹{walletBalance - getTotalBids() + (bids[chosen] || 0)}
+            </p>
           </div>
 
           {isParticipated && (
@@ -486,16 +513,35 @@ function NumberGame() {
           )}
 
           <div className="coins-icon-holder" onClick={() => setShowBidPopModal((prev) => !prev)}>
+            <div><span>{Object.entries(bids).length > 0 ? Object.entries(bids).length : 0}</span></div>
             <RiCoinsFill size={18}/>
           </div>
+          
+          <div className="game-stats">
+            Your Bid : ₹{Object.values(bids).reduce((sum, amt) => sum + Number(amt), 0)}/-
+          </div>
+          <img src={image1} className="roulette-img"/>
         </div>
 
         <div className="game-lower-body">
           <div className="game-board-outer">
             <div className="dice-layout">
-              {diceResults.map((num, i) => (
-                <DiceRoll key={i} targetNumber={num} trigger={rollTrigger} />
-              ))}
+              {
+                diceRollFinished 
+                ? <>
+                  {(diceResults || [6, 6, 6, 6, 6, 6]).map((val, i) => {
+                    const multiplier = sessionState.results?.filter(r => r === val).length || 0;
+                    return (
+                      <StaticDice key={i} targetNumber={val} bordered={multiplier > 1}/>
+                    )
+                  })}
+                </>
+                : <>
+                  {diceResults.map((num, i) => (
+                    <DiceRoll key={i} targetNumber={num} trigger={rollTrigger} />
+                  ))}
+                </>
+              }
             </div>
             <div className="game-board">
               {[1, 2, 3, 4, 5, 6].map((num) => (
@@ -510,6 +556,27 @@ function NumberGame() {
                   {bids[num] && <IoLockClosed />}
                 </div>
               ))}
+            </div>
+            <div 
+              className={`game-board-number game-board-all-suit ${
+                bids[7] ? "chosen" : ""
+              }`}
+              onClick={(e) => handleNumberClick(e, 7)}
+            >
+              <h1>All Suit</h1>
+              {bids[7] && <IoLockClosed />}
+            </div>
+            <div className="money-options">
+              {
+                [100,200,300,400,500,1000,5000,10000,20000,50000].map((money) => (
+                  <div 
+                    className={`money-card ${money <= (walletBalance - getTotalBids() + (bids[chosen] || 0)) ? 'enable' : 'disable'}`}
+                    onClick={(e) => handleMoneyClick(e,money)}
+                  >
+                    ₹{money}
+                  </div>
+                ))
+              }
             </div>
           </div>
         </div>

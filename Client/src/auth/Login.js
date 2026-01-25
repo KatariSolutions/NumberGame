@@ -65,6 +65,10 @@ function Login() {
         //console.log(res);
         if(res.status === 201) {
           setSuccess(1);
+          localStorage.setItem('token',res.token);
+          localStorage.setItem('userId', res.userId);
+
+          /*
           if(data.isChecked){
             localStorage.setItem('token',res.token);
             localStorage.setItem('userId', res.userId);
@@ -72,6 +76,7 @@ function Login() {
             sessionStorage.setItem('token',res.token);
             sessionStorage.setItem('userId', res.userId);
           }
+          */
 
           setIsLoading(true);
           toast.success('Login Successfully!')
@@ -80,11 +85,11 @@ function Login() {
             navigate('/app/dashboard');
           }, 1000)
         } else {
-          toast.error(res.error);
+          toast.error(res.message);
           
           setIsFetching(false);
           setIsServerError(true);
-          setServerStatus(res.error);
+          setServerStatus(res.message);
         }
       } catch (err) {
         console.error(err);
@@ -184,15 +189,19 @@ function Login() {
                     onChange={handleChange}
                   />
                 </div>
-                <div className='input-box checkbox'>
-                  <input 
-                    type='checkbox' 
-                    name='isChecked'
-                    checked={data.isChecked} 
-                    onChange={handleChange}
-                  />
-                  <label>remember me</label>
-                </div>
+                {
+                  /* 
+                    <div className='input-box checkbox'>
+                      <input 
+                        type='checkbox' 
+                        name='isChecked'
+                        checked={data.isChecked} 
+                        onChange={handleChange}
+                      />
+                      <label>remember me</label>
+                    </div>
+                  */
+                }
                 <div className='button-box'>
                   {
                     isFetching

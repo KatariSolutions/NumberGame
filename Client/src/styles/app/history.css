@@ -1,0 +1,154 @@
+.game-history-container {
+  max-width: 700px;
+  margin: 30px auto;
+  padding: 10px;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.history-title {
+  text-align: center;
+  font-size: 24px;
+  font-weight: var(--wt-bold);
+  margin-bottom: 20px;
+  color: var(--bg-primary);
+}
+
+.no-history {
+  text-align: center;
+  color: #888;
+  margin-top: 30px;
+}
+
+.history-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.history-card:hover {
+  transform: scale(1.01);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+}
+
+.history-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.summary-left {
+  flex: 1;
+}
+
+.session-id {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.session-date {
+  color: #777;
+  font-size: 0.8rem;
+}
+
+.summary-net {
+  font-weight: bold;
+  font-size: 0.95rem;
+  margin-left: 10px;
+}
+
+.profit {
+  color: #2d8a3e;
+}
+
+.loss {
+  color: #d93939;
+}
+
+.summary-icon {
+  margin-left: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.history-details {
+  margin-top: 10px;
+  border-top: 1px solid #eaeaea;
+  padding-top: 10px;
+}
+
+.result-line {
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+}
+
+.details-table {
+    margin-top: 1rem;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.details-table th,
+.details-table td {
+  text-align: left;
+  padding: 8px 6px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.details-table th {
+  background: #f9f9f9;
+  font-weight: 600;
+}
+
+.status-win {
+  color: #2e8b57;
+  font-weight: bold;
+}
+
+.status-lose {
+  color: #c0392b;
+  font-weight: bold;
+}
+
+/* Responsive for mobiles */
+@media (max-width: 600px) {
+  .game-history-container {
+    padding: 12px;
+    margin: 0px auto;
+  }
+
+  .game-history-container {
+    padding-bottom: 50px;
+  }
+
+  .history-card {
+    padding: 8px 6px;
+  }
+
+  .details-table th,
+  .details-table td {
+    font-size: 10px;
+    padding: 4px;
+  }
+
+  .history-summary {
+    align-items: flex-start;
+  }
+
+  .summary-net {
+    margin-top: 4px;
+  }
+
+  .session-id {
+    margin-bottom: .5rem;
+  }
+
+  .session-date {
+    font-size: var(--font-sm);
+  }
+}

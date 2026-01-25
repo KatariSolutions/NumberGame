@@ -24,8 +24,11 @@ walletRouter.get("/balance/:user_id", async (req, res) => {
     const result = await pool.request()
       .input("user_id", sql.BigInt, user_id)
       .query(`
-        SELECT w.wallet_id, w.balance
+        SELECT w.wallet_id, w.balance - isnull(wr.amount,0) as balance
         FROM wallets w
+        left join wallet_requests wr ON wr.user_id = w.user_id 
+        	AND wr.request_type='WITHDRAW' 
+        	AND wr.status = 'PENDING'
         WHERE w.user_id = @user_id
       `);
 
@@ -39,7 +42,7 @@ walletRouter.get("/balance/:user_id", async (req, res) => {
     });
   } catch (err) {
     console.error("Error fetching wallet balance:", err);
-    res.status(500).json({ status : 500, error: "Server error" });
+    res.status(500).json({ status : 500, message: "Server error" });
   }
 });
 
@@ -53,7 +56,7 @@ walletRouter.post("/credit", async (req, res) => {
   const { user_id, amount, reference_id, type } = req.body;
 
   if (!user_id || !amount || amount <= 0 /*|| amount > process.env.WALLET_MAX_LIMIT*/)
-    return res.status(209).json({ status : 209, error: "Invalid parameters" });
+    return res.status(209).json({ status : 209, message: "Invalid parameters" });
 
   const transaction = new sql.Transaction(pool);
   try {
@@ -104,7 +107,7 @@ walletRouter.post("/credit", async (req, res) => {
   } catch (err) {
     await transaction.rollback();
     console.error("Credit error:", err);
-    res.status(500).json({ status : 500, error: "Transaction failed" });
+    res.status(500).json({ status : 500, message: "Transaction failed" });
   }
 });
 
@@ -118,7 +121,7 @@ walletRouter.post("/debit", async (req, res) => {
   const { user_id, amount, reference_id, type } = req.body;
 
   if (!user_id || !amount || amount <= 0)
-    return res.status(209).json({ status : 209, error: "Invalid parameters" });
+    return res.status(209).json({ status : 209, message: "Invalid parameters" });
 
   const transaction = new sql.Transaction(pool);
   try {
@@ -129,12 +132,12 @@ walletRouter.post("/debit", async (req, res) => {
       .query(`SELECT wallet_id, balance FROM wallets WHERE user_id = @user_id`);
 
     if (walletResult.recordset.length === 0)
-      return res.status(209).json({ status : 209, error: "Wallet not found" });
+      return res.status(209).json({ status : 209, message: "Wallet not found" });
 
     const wallet = walletResult.recordset[0];
 
     if (wallet.balance < amount)
-      return res.status(209).json({ status : 209, error: "Insufficient balance" });
+      return res.status(209).json({ status : 209, message: "Insufficient balance" });
 
     const newBalance = Number(wallet.balance) - Number(amount);
 
@@ -155,7 +158,7 @@ walletRouter.post("/debit", async (req, res) => {
   } catch (err) {
     await transaction.rollback();
     console.error("Debit error:", err);
-    res.status(500).json({ status : 500, error: "Transaction failed" });
+    res.status(500).json({ status : 500, message: "Transaction failed" });
   }
 });
 
@@ -251,7 +254,7 @@ walletRouter.post("/transactions/:user_id", async (req, res) => {
     });
   } catch (err) {
     console.error("Transaction Fetch Error:", err);
-    res.status(500).json({ status : 500, error: "Server error" });
+    res.status(500).json({ status : 500, message: "Server error" });
   }
 });
 

@@ -10,6 +10,12 @@ yarn-error.log*
 pnpm-debug.log*
 logs/
 *.log
+*.env
+.env
+
+# admin
+admin/
+Admin/
 
 # Build output
 dist/

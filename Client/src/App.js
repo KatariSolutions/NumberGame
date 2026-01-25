@@ -12,6 +12,7 @@ import ServerErrorPage from "./error/ServerErrorPage";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import GamesLayout from "./application/Games";
+import LandingPage from "./pages/LandingPage";
 
 function App() {
   return (
@@ -33,7 +34,8 @@ function App() {
           <Route path="/404" element={<NotFoundPage />} />
           <Route path="/500" element={<ServerErrorPage />} />
 
-          <Route path="/" element={<Navigate to="/auth/login" />} />
+          <Route path="/" element={<Navigate to="/landing-page" />} />
+          <Route path="/landing-page" element={<LandingPage />} />
           <Route path="/auth/*" element={<AuthLayout />} />
           <Route
             path="/app/*"

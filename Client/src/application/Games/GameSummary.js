@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StaticDice from './StaticDice';
 import { getBidsbySessionAPI } from '../../apis/bids/getBidsBySessionAPI';
@@ -13,6 +13,9 @@ function GameSummary({ summary: summaryProp }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const [countdown, setCountdown] = useState(10);
+  const countdownIntervalRef = useRef(null);
+
   // Load user credentials
   useEffect(() => {
     const tok = sessionStorage.getItem("token") || localStorage.getItem("token");
@@ -22,7 +25,27 @@ function GameSummary({ summary: summaryProp }) {
       return;
     }
     setToken(tok);
+  }, [navigate]);
+
+  useEffect(() => {
+    countdownIntervalRef.current = setInterval(() => {
+      setCountdown(prev => prev - 1);
+    }, 1000);
+
+    // cleanup on unmount
+    return () => {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
+    };
   }, []);
+
+  useEffect(() => {
+    if (countdown <= 0) {
+      clearInterval(countdownIntervalRef.current);
+      navigate('/game/numbergame');
+    }
+  }, [countdown, navigate]);
 
   // === Load summary from localStorage if not passed as prop ===
   useEffect(() => {
@@ -44,13 +67,22 @@ function GameSummary({ summary: summaryProp }) {
       console.log(res);
       if (res.status === 201) {
         setUserBids(res.result);
+      } else if (res.status === 403) {
+        toast.error(res.message);
+        navigate('/403');
+      } else if (res.status === 401) {
+        toast.error(res.message);
+        navigate('/401');
       } else {
-        setError('Failed to fetch bids');
+        toast.error(res.message || 'Failed to fetch bids')
       }
     } catch (err) {
       toast.error('Failed to fetch bid details.');
       if (err?.status === 403) navigate('/403');
       if (err?.status === 401) navigate('/401');
+      if(err?.status === 500) {
+        navigate('/500')
+      }
     } finally {
       setLoading(false);
     }
@@ -64,6 +96,11 @@ function GameSummary({ summary: summaryProp }) {
   }, [summary]);
 
   const handleNavigation = (path) => {
+    // 🛑 stop auto redirect
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+    }
+
     localStorage.removeItem('gameSummary'); // cleanup
     navigate(path);
   };
@@ -78,9 +115,12 @@ function GameSummary({ summary: summaryProp }) {
         <h1>Game Results</h1>
 
         <div className="dice-layout">
-          {(results || [6, 6, 6, 6, 6, 6]).map((val, i) => (
-            <StaticDice key={i} targetNumber={val} trigger={false} />
-          ))}
+          {(results || [6, 6, 6, 6, 6, 6]).map((val, i) => {
+            const multiplier = summary.results?.filter(r => r === val).length || 0;
+            return (
+              <StaticDice key={i} targetNumber={val} bordered={multiplier > 1}/>
+            )
+          })}
         </div>
 
         <div className={`summary-message ${net > 0 ? 'positive' : 'negative'}`}>
@@ -94,10 +134,11 @@ function GameSummary({ summary: summaryProp }) {
             <p className="error-text">{error}</p>
           ) : (
             <>
-              <p><strong>Total Bids:</strong> ₹{totalBid} (deducted from your wallet)</p>
+              <p><strong>Total Bids:</strong> ₹{totalBid}</p>
               <p><strong>Total Payout:</strong> ₹{totalPayout}</p>
               <p className={net > 0 ? 'profit' : 'loss'}>
                 <strong>Net Result:</strong> {net > 0 ? `+₹${net}` : `₹${net}`}
+                ({net > 0 ? 'credited to your wallet' :'deducted from your wallet'})
               </p>
 
               {userBids.length > 0 && (
@@ -105,7 +146,7 @@ function GameSummary({ summary: summaryProp }) {
                   <table className="bids-table">
                     <thead>
                       <tr>
-                        <th>Chosen Number</th>
+                        <th>Chosen</th>
                         <th>Amount (₹)</th>
                         <th>Multiplier</th>
                         <th>Total (₹)</th>
@@ -113,14 +154,17 @@ function GameSummary({ summary: summaryProp }) {
                     </thead>
                     <tbody>
                       {userBids.map((b, idx) => {
-                        const multiplier = summary.results?.filter(r => r === b.chosen_number).length || 0;
+                        const summarySet = new Set(summary.results);
+                        const multiplier = b.chosen_number !== 7 
+                                            ? summary.results?.filter(r => r === b.chosen_number).length || 0 
+                                            : summarySet.size === 6 ? 6 : 0;
                         const total = multiplier * b.amount;
                         return (
-                          <tr key={idx} className={multiplier > 0 ? 'win-row' : 'loss-row'}>
-                            <td>{b.chosen_number}</td>
+                          <tr key={idx} className={multiplier > 1 ? 'win-row' : 'loss-row'}>
+                            <td>{b.chosen_number !== 7 ? b.chosen_number : 'All Suit'}</td>
                             <td>{b.amount}</td>
                             <td>{multiplier}x</td>
-                            <td>{multiplier > 0 ? `+₹${total}` : `-₹${b.amount}`}</td>
+                            <td>{multiplier > 1 ? `+₹${total}` : `-₹${b.amount}`}</td>
                           </tr>
                         );
                       })}
@@ -137,7 +181,7 @@ function GameSummary({ summary: summaryProp }) {
             Go Home
           </button>
           <button className="btn primary" onClick={() => handleNavigation('/game/numbergame')}>
-            Join Next Game
+            Join Next Game ({countdown}s)
           </button>
         </div>
       </div>

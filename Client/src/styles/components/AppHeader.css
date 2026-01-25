@@ -137,13 +137,51 @@
   font-size: 20px;
 }
 
+.mobile-footbar {
+  display: none;
+}
+
 /* ===== Responsive Design ===== */
-@media (max-width: 768px) {
+@media (max-width: 600px) {
   .header-menu {
     display: none;
   }
 
   .hamburger {
-    display: block;
+    display: none;
+  }
+
+  .mobile-footbar {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    background: var(--bg-secondary); /* dark app-style */
+    border-top: 1px solid rgba(255,255,255,0.1);
+    justify-content: space-around;
+    align-items: center;
+    z-index: 1000;
+  }
+
+  .footbar-item {
+    background: none;
+    border: none;
+    color: var(--font-primary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 10px;
+    gap: 4px;
+    cursor: pointer;
+  }
+
+  .footbar-item svg {
+    font-size: 18px;
+  }
+
+  .footbar-item:hover {
+    color: #fff;
   }
 }

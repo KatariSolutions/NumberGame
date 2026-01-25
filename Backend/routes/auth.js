@@ -26,7 +26,7 @@ authRouter.post("/register", registerLimiter, async (req, res) => {
       .query("SELECT user_id FROM Users WHERE email = @email");
 
     if (checkEmail.recordset.length > 0) {
-      return res.status(209).json({ status : 209, error: "Email already exists" });
+      return res.status(209).json({ status : 209, message: "Email already exists" });
     }
 
     // 🔍 Check if phone already exists
@@ -35,7 +35,7 @@ authRouter.post("/register", registerLimiter, async (req, res) => {
       .query("SELECT user_id FROM Users WHERE phone = @phone");
 
     if (checkPhone.recordset.length > 0) {
-      return res.status(209).json({ status : 209, error: "Phone number already exists" });
+      return res.status(209).json({ status : 209, message: "Phone number already exists" });
     }
 
     const hashed = await bcrypt.hash(password, 10);
@@ -75,7 +75,7 @@ authRouter.post("/register", registerLimiter, async (req, res) => {
     res.status(201).json({status : 201, message: "User registered", userId });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ status:500, error: 'Server error' });
+    res.status(500).json({ status:500, message: 'Server error' });
   }
 });
 
@@ -91,7 +91,7 @@ authRouter.post('/request-otp', sendOtpLimiter, async (req, res) => {
       .query("SELECT * FROM Users WHERE email=@email");
 
     const user = result.recordset[0];
-    if (!user) return res.status(209).json({status : 209, error: "User Not Found! Please register first" });
+    if (!user) return res.status(209).json({status : 209, message: "User Not Found! Please register first" });
 
     // Extract userId from result
     const userId = result.recordset[0].user_id;
@@ -119,14 +119,16 @@ authRouter.post('/request-otp', sendOtpLimiter, async (req, res) => {
     res.status(201).json({status : 201, message: "OTP sent", userId });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ status:500, error: 'Server error' });
+    res.status(500).json({ status:500, message: 'Server error' });
   } 
 })
 
 authRouter.post('/verify-otp', async (req, res) => {
   try {
     await poolConnect;
-    const { user_id, email_otp } = req.body;
+    const { user_id, email_otp, type } = req.body;
+    // type : [forgot-password, register]
+
     //console.log('user_id : ', user_id);
     //console.log('email_otp : ', email_otp);
 
@@ -136,22 +138,89 @@ authRouter.post('/verify-otp', async (req, res) => {
 
     const row = result.recordset[0];
     //console.log(row);
-    if (!row) return res.status(209).json({ status : 209, error:'Invalid or already verified!'});
-    if (new Date(row.expires_at) < new Date()) return res.status(209).json({ status : 209, error:'OTP expired!'});
+    if (!row) return res.status(209).json({ status : 209, message:'Invalid or already verified!'});
+    if (new Date(row.expires_at) < new Date()) return res.status(209).json({ status : 209, message:'OTP expired!'});
 
-    if (parseInt(row.email_otp) !== parseInt(email_otp)) {
-      return res.status(209).json({ status : 209, error:'Incorrect OTP'});
+    if (String(row.email_otp) !== String(email_otp)) {
+      return res.status(209).json({ status : 209, message:'Incorrect OTP'});
     }
 
+    // updating users and user_otps also in single method
     await pool.request()
       .input('verification_id', row.verification_id)
       .input('user_id', user_id)
       .query('UPDATE users SET is_verified=1,is_active=1 WHERE user_id=@user_id; UPDATE user_otps SET is_verified=1 WHERE user_id=@user_id;');
 
-    res.status(201).json({status : 201, message: 'Verification successful' });
+    if(type === 'register') {
+      // Step 1: Check existing active session
+      const activeSession = await pool.request()
+        .input("user_id", user_id)
+        .query(`
+          SELECT TOP 1 * FROM login_sessions 
+          WHERE user_id=@user_id AND is_active=1
+          ORDER BY session_starttime DESC
+        `);
+  
+      //console.log('activeSession : ', activeSession);
+  
+      // step 2 : if active session found, make it inactive
+      if (activeSession.recordset.length > 0) {
+        const session = activeSession.recordset[0];
+  
+        await pool.request()
+            .input("login_session_id", session.login_session_id)
+            .query(`
+              UPDATE login_sessions 
+              SET is_active=0 
+              WHERE login_session_id=@login_session_id
+            `);
+        
+        /*
+        const now = moment().utc();  // current time
+        const sessionEnd = new Date(session.session_endtime); // parses SQL datetime
+  
+        // If still valid (session not expired)
+        if (sessionEnd > now ) {
+          return res.status(209).json({ 
+            status: 209, 
+            message: "User already logged in from another device." 
+          });
+        } 
+        else {
+          // Expired session -> mark inactive
+          await pool.request()
+            .input("login_session_id", session.login_session_id)
+            .query(`
+              UPDATE login_sessions 
+              SET is_active=0 
+              WHERE login_session_id=@login_session_id
+            `);
+        }
+        */
+      }
+  
+      const expiresIn = "24h";
+      const hoursToAdd = 24;
+  
+      // create new token
+      const token = jwt.sign({ userId: user_id }, config.jwtsecret, { expiresIn });
+  
+      // Step 3 : Create new login session
+      await pool.request()
+        .input("user_id", user_id)
+        .input("token", token)
+        .query(`
+          INSERT INTO login_sessions (user_id, token, is_active, session_starttime, session_endtime)
+          VALUES (@user_id, @token, 1, GETUTCDATE(), DATEADD(hour, ${hoursToAdd}, GETUTCDATE()))
+        `);
+  
+      return res.status(201).json({status : 201, message: 'Verification successful', userId:user_id, token});
+    }
+    
+    res.status(201).json({status : 201, message: 'Verification successful'});
   } catch (err) {
     console.error(err);
-    res.status(500).json({status:500, error:'Server error'});
+    res.status(500).json({status:500, message:'Server error'});
   }
 });
 
@@ -168,7 +237,7 @@ authRouter.post("/update-password", forgotPasswordLimiter, async (req, res) => {
     res.status(201).json({status : 201, message: "Password Updated"});
   } catch (err) {
     console.error(err);
-    res.status(500).json({status: 500, error:'Server error'});
+    res.status(500).json({status: 500, message:'Server error'});
   }
 })
 
@@ -183,17 +252,17 @@ authRouter.post("/login", loginLimiter, async (req, res) => {
       .query("SELECT * FROM Users WHERE email=@email");
 
     const user = result.recordset[0];
-    if (!user) return res.status(209).json({status : 209, error: "User Not Found! Please register first" });
+    if (!user) return res.status(209).json({status : 209, message: "User Not Found! Please register first" });
 
     // User must be verified
-    if (!user.is_verified) return res.status(209).json({status : 209, error: "Please verify before login!" });
+    if (!user.is_verified) return res.status(209).json({status : 209, message: "Please verify before login!" });
 
     // User must be active
-    if (!user.is_active) return res.status(209).json({status : 209, error: "User not active!" });
+    if (!user.is_active) return res.status(209).json({status : 209, message: "User blocked!" });
 
     // password check
     const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) return res.status(209).json({status : 209, error: "Invalid credentials" });
+    if (!valid) return res.status(209).json({status : 209, message: "Invalid credentials" });
 
     // Step 1: Check existing active session
     const activeSession = await pool.request()
@@ -206,27 +275,27 @@ authRouter.post("/login", loginLimiter, async (req, res) => {
 
     //console.log('activeSession : ', activeSession);
 
+    // step 2 : if active session found, make it inactive
     if (activeSession.recordset.length > 0) {
       const session = activeSession.recordset[0];
+
+      await pool.request()
+          .input("login_session_id", session.login_session_id)
+          .query(`
+            UPDATE login_sessions 
+            SET is_active=0 
+            WHERE login_session_id=@login_session_id
+          `);
+      
+      /*
       const now = moment().utc();  // current time
       const sessionEnd = new Date(session.session_endtime); // parses SQL datetime
 
-      //console.log('Session End:', sessionEnd);
-      //console.log('Now:', now);
-
-      /*
-      const sessionEnd = moment(session.session_endtime).utcOffset('+00:00');
-      const now = moment(); // this is IST already if server is IST
-      console.log('Session End (IST):', sessionEnd.format());
-      console.log('Now (IST):', now.format());
-      console.log('Session valid?', sessionEnd.isAfter(now));
-      */
-
       // If still valid (session not expired)
-      if (sessionEnd > now) {
+      if (sessionEnd > now ) {
         return res.status(209).json({ 
           status: 209, 
-          error: "User already logged in from another device." 
+          message: "User already logged in from another device." 
         });
       } 
       else {
@@ -239,14 +308,16 @@ authRouter.post("/login", loginLimiter, async (req, res) => {
             WHERE login_session_id=@login_session_id
           `);
       }
+      */
     }
 
-    const expiresIn = isChecked ? "24h" : "1h";
-    const hoursToAdd = isChecked ? 24 : 1;
+    const expiresIn = "24h";
+    const hoursToAdd = 24;
 
+    // create new token
     const token = jwt.sign({ userId: user.user_id }, config.jwtsecret, { expiresIn });
 
-    // Create new login session
+    // Step 3 : Create new login session
     await pool.request()
       .input("user_id", user.user_id)
       .input("token", token)
@@ -258,7 +329,7 @@ authRouter.post("/login", loginLimiter, async (req, res) => {
     res.status(201).json({ status : 201, userId:user.user_id, token });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ status : 500, error: 'Server error' });
+    res.status(500).json({ status : 500, message: 'Server error' });
   }
 });
 
@@ -281,7 +352,7 @@ authRouter.post("/deactivate-session", async (req, res) => {
     return res.status(201).json({ status: 201, message: "Session deactivated successfully" });
   } catch (err) {
     console.error("Deactivate session error:", err);
-    return res.status(500).json({ status: 500, error: "Failed to deactivate session" });
+    return res.status(500).json({ status: 500, message: "Failed to deactivate session" });
   }
 });
 
@@ -297,7 +368,7 @@ authRouter.post("/activate-user", async (req, res) => {
     res.status(201).json({status:201,message:'User Activated'})
   } catch (err) {
     console.error(err);
-    res.status(500).json({ status : 500, error: 'Server error' });
+    res.status(500).json({ status : 500, message: 'Server error' });
   }
 });
 
@@ -313,8 +384,85 @@ authRouter.post("/deactivate-user", async (req, res) => {
     res.status(201).json({status:201,message:'User De-activated'})
   } catch (err) {
     console.error(err);
-    res.status(500).json({ status : 500, error: 'Server error' });
+    res.status(500).json({ status : 500, message: 'Server error' });
   }
 });
+
+// Admin login 
+authRouter.post("/adminlogin", loginLimiter, async (req, res) => {
+  try {
+    await poolConnect;
+
+    const { email, password, isChecked } = req.body;
+
+    const result = await pool.request()
+      .input("email", email)
+      .query("SELECT * FROM Users WHERE email=@email");
+
+    const user = result.recordset[0];
+    if (!user) return res.status(209).json({status : 209, message: "User Not Found! Please register first" });
+
+    // User must be verified
+    if (!user.is_verified) return res.status(209).json({status : 209, message: "Please verify before login!" });
+
+    // User must be active
+    if (!user.is_active) return res.status(209).json({status : 209, message: "User not active!" });
+
+    if (!user.is_admin) return res.status(209).json({status : 209, message: "User not an admin!" });
+
+    // password check
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) return res.status(209).json({status : 209, message: "Invalid credentials" });
+
+    // Step 1: Check existing active session
+    const activeSession = await pool.request()
+      .input("user_id", user.user_id)
+      .query(`
+        SELECT TOP 1 * FROM login_sessions 
+        WHERE user_id=@user_id AND is_active=1
+        ORDER BY session_starttime DESC
+      `);
+
+    //console.log('activeSession : ', activeSession);
+
+    if (activeSession.recordset.length > 0) {
+      const session = activeSession.recordset[0];
+      const now = moment().utc();  // current time
+      const sessionEnd = new Date(session.session_endtime); // parses SQL datetime
+
+      //console.log('Session End:', sessionEnd);
+      //console.log('Now:', now);
+
+      // Expired session -> mark inactive
+      await pool.request()
+        .input("login_session_id", session.login_session_id)
+        .query(`
+          UPDATE login_sessions 
+          SET is_active=0 
+          WHERE login_session_id=@login_session_id
+        `);
+    }
+
+    const expiresIn = isChecked ? "48h" : "8h";
+    const hoursToAdd = isChecked ? 48 : 8;
+
+    const token = jwt.sign({ userId: user.user_id }, config.jwtsecret, { expiresIn });
+
+    // Create new login session
+    await pool.request()
+      .input("user_id", user.user_id)
+      .input("token", token)
+      .query(`
+        INSERT INTO login_sessions (user_id, token, is_active, session_starttime, session_endtime)
+        VALUES (@user_id, @token, 1, GETUTCDATE(), DATEADD(hour, ${hoursToAdd}, GETUTCDATE()))
+      `);
+
+    res.status(201).json({ status : 201, userId:user.user_id, token });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ status : 500, message: 'Server error' });
+  }
+});
+
 
 export default authRouter;

@@ -9,8 +9,8 @@ bidsRouter.post('/getBidsbySession', async (req, res) => {
     const { session_id, user_id } = req.body;
 
     if (!session_id || !user_id) {
-      return res.status(400).json({
-        status: 400,
+      return res.status(209).json({
+        status: 209,
         message: 'Missing required parameters: session_id or user_id'
       });
     }
@@ -44,7 +44,7 @@ bidsRouter.post('/getBidsbySession', async (req, res) => {
     console.error('getBidsbySession Error:', err);
     res.status(500).json({
       status: 500,
-      error: 'Server error'
+      message: 'Server error'
     });
   }
 });
@@ -55,8 +55,8 @@ bidsRouter.post('/getBidsbyUserId', async (req, res) => {
     const { user_id } = req.body;
 
     if (!user_id) {
-      return res.status(400).json({
-        status: 400,
+      return res.status(209).json({
+        status: 209,
         message: 'Missing required parameters: user_id'
       });
     }
@@ -66,14 +66,17 @@ bidsRouter.post('/getBidsbyUserId', async (req, res) => {
     const result = await pool.request()
       .input('user_id', user_id)
       .query(`
-        SELECT session_id, 
-          SUM(amount) as bid_placed, 
-          SUM(payout) as payout, 
-          SUM(payout) - SUM(amount) as PnL
-        FROM session_user_results
-        WHERE user_id = @user_id
-        GROUP BY session_id
-        ORDER BY session_id desc
+        SELECT SUR.session_id, 
+        	SUM(SUR.amount) as bid_placed, 
+        	SUM(SUR.payout) as payout, 
+        	SUM(SUR.payout) - SUM(amount) as PnL,
+        	MAX(SR.winning_number) as winning_number,
+        	MAX(SR.declared_at) as results_declared_date
+        FROM session_user_results SUR
+        LEFT JOIN session_results SR with(nolock) ON SUR.session_id = SR.session_id
+        WHERE SUR.user_id = @user_id
+        GROUP BY SUR.session_id
+        ORDER BY SUR.session_id desc
       `);
 
     res.status(201).json({
@@ -86,7 +89,7 @@ bidsRouter.post('/getBidsbyUserId', async (req, res) => {
     console.error('getBidsbyUser Error:', err);
     res.status(500).json({
       status: 500,
-      error: 'Server error'
+      message: 'Server error'
     });
   }
 });

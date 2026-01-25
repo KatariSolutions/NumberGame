@@ -9,7 +9,11 @@
 .dashboard-card {
   width: 320px;
   min-height: 180px;
-  background: var(--bg-secondary);
+  background: linear-gradient(
+      rgba(0, 0, 0, 0.45),
+      rgba(0, 0, 0, 0.45)
+    ),
+    var(--bg-secondary);
   background-position: center center;
   background-repeat: no-repeat;
   background-size: cover;
@@ -24,6 +28,42 @@
   justify-content: space-between;
 }
 
+.dashboard-card {
+  position: relative;
+  width: 320px;
+  min-height: 180px;
+  border-radius: 12px;
+  overflow: hidden;
+
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Dark overlay */
+.dashboard-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45); /* adjust darkness */
+  z-index: 0;
+}
+
+/* Keep content above overlay */
+.dashboard-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+
 .dashboard-card:hover {
   transform: translateY(-4px);
 }
@@ -33,7 +73,7 @@
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
 }
 
 .dashboard-title {
@@ -53,8 +93,11 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background-color: #2ecc71;
+  background-color: var(--font-primary);
   animation: blink 1s infinite;
+}
+.dot.inactive{
+  background-color: #E13105;
 }
 
 @keyframes blink {
@@ -64,9 +107,12 @@
 
 .status-text {
   font-size: 12px;
-  font-size: bold;
-  color: #27ae60;
-  font-weight: 500;
+  font-size: var(--font-sm);
+  color: var(--font-primary);
+  font-weight: var(--wt-boldx);
+}
+.status-text.inactive{
+  color: #E13105;
 }
 
 /* Body Section */
@@ -74,7 +120,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 40px;
+  margin-top: 10px;
 }
 
 .play-button {
@@ -91,8 +137,19 @@
   transition: all 0.3s ease;
 }
 
-.play-button:hover {
+.play-button.active{
+  background-color: #27ae60;
+}
+.play-button.active:hover {
   background: linear-gradient(135deg, #2ecc71, #27ae60);
+  transform: scale(1.05);
+}
+
+.play-button.inactive{
+  background-color: #E13105;
+}
+.play-button.inactive:hover {
+  background: linear-gradient(135deg, #f84f24, #E13105);
   transform: scale(1.05);
 }
 

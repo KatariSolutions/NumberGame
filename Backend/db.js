@@ -7,9 +7,9 @@ const dbConfig = {
   password: config.sql.password,
   server: config.sql.server,
   database: config.sql.database,
-  port: parseInt(config.port, 10),
+  port: parseInt(config.sql.port, 10),
   options: {
-    encrypt: false,              // true if using Azure
+    encrypt: true,              // true if using Azure
     trustServerCertificate: true // required for local dev
   },
   pool: {

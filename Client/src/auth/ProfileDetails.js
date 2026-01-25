@@ -88,7 +88,7 @@ function ProfileDetails() {
         } else {
           setIsFetching(false);
           setIsServerError(true);
-          setServerStatus(res.error);
+          setServerStatus(res.message);
         }
       } catch (err) {
         console.error(err);

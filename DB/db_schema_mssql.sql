@@ -70,9 +70,9 @@ GO
 CREATE TABLE [user_profiles] (
     [profile_id] BIGINT NOT NULL,
     [user_id] BIGINT NOT NULL,
-    [full_name] VARCHAR(100) NOT NULL,
-    [avatar_url] VARCHAR(255) NOT NULL,
-    [dob] DATE NOT NULL,
+    [full_name] VARCHAR(100) DEFAULT NULL,
+    [avatar_url] VARCHAR(MAX) DEFAULT NULL,
+    [dob] DATE DEFAULT NULL,
     [created_at] DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
 	[address] VARCHAR(200) DEFAULT NULL,
     [pincode] VARCHAR(10) NULL,
@@ -375,7 +375,7 @@ GO
 CREATE TABLE [session_results] (
     [result_id] BIGINT NOT NULL,
     [session_id] BIGINT NOT NULL,
-    [winning_number] INT NOT NULL,
+    [winning_number] VARCHAR(20) NOT NULL,
     [declared_at] DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
     CONSTRAINT [PK_result_Id] PRIMARY KEY CLUSTERED ([result_id] ASC)
         WITH (FILLFACTOR = 80)
@@ -494,3 +494,163 @@ ADD CONSTRAINT [FK_user_results_userid]
 FOREIGN KEY ([user_id]) REFERENCES [users]([user_id]);
 GO
 
+/*
+===========================================
+   GAME_CONTROL
+=========================================== 
+*/
+DROP TABLE IF EXISTS game_control;
+GO
+
+CREATE TABLE game_control (
+    control_id INT IDENTITY(1,1) PRIMARY KEY,
+    is_active BIT NOT NULL DEFAULT 0,
+    last_updated DATETIME2 NOT NULL DEFAULT GETDATE(),
+    updated_by VARCHAR(50) NULL
+);
+GO
+
+/*
+===========================================
+	BANK_DETAILS
+===========================================
+*/
+-- Create sequence for primary key
+CREATE SEQUENCE seq_bankaccountsid AS BIGINT
+START WITH 1
+INCREMENT BY 1
+MINVALUE -9223372036854775808
+MAXVALUE 9223372036854775807
+CACHE;
+GO
+
+-- Drop table if exists
+DROP TABLE IF EXISTS [BankAccounts];
+GO
+
+-- Create table
+CREATE TABLE [BankAccounts] (
+    [ba_id] BIGINT NOT NULL,
+    [user_id] BIGINT NOT NULL,
+    [acc_number] VARCHAR(50) NOT NULL,
+	[bank_name] VARCHAR(50) NOT NULL,
+	[IFSC_code] VARCHAR(20) NOT NULL,
+	[branch_name] VARCHAR(20),
+	[pincode] VARCHAR(10),
+	[mobile] VARCHAR(13) NOT NULL,
+    [last_updated] DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+	[is_active] BIT DEFAULT 1,
+	[is_upi_available] BIT DEFAULT 1,
+    CONSTRAINT [PK_ba_Id] PRIMARY KEY CLUSTERED ([ba_id] ASC)
+        WITH (FILLFACTOR = 80)
+) ON [PRIMARY];
+GO
+
+-- Add default from sequence for wallet_id
+ALTER TABLE [BankAccounts] 
+ADD DEFAULT (NEXT VALUE FOR [seq_bankaccountsid]) FOR [ba_id];
+GO
+
+-- Add foreign key to users table
+ALTER TABLE [BankAccounts]
+ADD CONSTRAINT [FK_bankaccounts_userid]
+FOREIGN KEY ([user_id]) REFERENCES [users]([user_id])
+ON UPDATE NO ACTION
+ON DELETE NO ACTION;
+GO
+
+/*
+===========================================
+	WALLET_REQUESTS
+===========================================
+*/
+-- Create sequence for primary key
+CREATE SEQUENCE seq_walletrequestid AS BIGINT
+START WITH 1
+INCREMENT BY 1
+MINVALUE -9223372036854775808
+MAXVALUE 9223372036854775807
+CACHE;
+GO
+
+-- Drop table if exists
+DROP TABLE IF EXISTS [wallet_requests];
+GO
+
+-- Create table
+CREATE TABLE [wallet_requests] (
+    [request_id] BIGINT NOT NULL,
+    [user_id] BIGINT NOT NULL,
+    [request_type] VARCHAR(20) NOT NULL,
+	[amount] DECIMAL(20) NOT NULL,
+	[status] VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+	[admin_note] VARCHAR(255),
+	[payment_ref] VARCHAR(100),
+	[created_at] DATETIME DEFAULT SYSDATETIME(),
+	[updated_at] DATETIME,
+	[pay_img] VARCHAR(MAX),
+    CONSTRAINT [PK_walletrequest_Id] PRIMARY KEY CLUSTERED ([request_id] ASC)
+        WITH (FILLFACTOR = 80)
+) ON [PRIMARY];
+GO
+
+-- Add default from sequence for wallet_id
+ALTER TABLE [wallet_requests] 
+ADD DEFAULT (NEXT VALUE FOR [seq_walletrequestid]) FOR [request_id];
+GO
+
+-- Add foreign key to users table
+ALTER TABLE [wallet_requests]
+ADD CONSTRAINT [FK_walletrequests_userid]
+FOREIGN KEY ([user_id]) REFERENCES [users]([user_id])
+ON UPDATE NO ACTION
+ON DELETE NO ACTION;
+GO
+
+
+/* ===========================================
+   USER_NOTIFICATIONS
+   =========================================== */
+
+-- Create sequence for primary key
+CREATE SEQUENCE seq_usernotificationsid AS BIGINT
+START WITH 1
+INCREMENT BY 1
+MINVALUE -9223372036854775808
+MAXVALUE 9223372036854775807
+CACHE;
+GO
+
+-- Drop table if exists
+DROP TABLE IF EXISTS [user_notifications];
+GO
+
+-- Create table
+CREATE TABLE [user_notifications] (
+    [notification_id] BIGINT NOT NULL,
+    [user_id] BIGINT NOT NULL,
+    [notification_type] VARCHAR(20) NOT NULL,
+    [message] VARCHAR(500) NOT NULL,
+    [is_viewed] BIT NOT NULL DEFAULT 0,
+    [created_on] DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    CONSTRAINT [PK_notification_Id] PRIMARY KEY CLUSTERED ([notification_id] ASC)
+        WITH (FILLFACTOR = 80)
+) ON [PRIMARY];
+GO
+
+-- Add default from sequence for notification_id
+ALTER TABLE [user_notifications]
+ADD DEFAULT (NEXT VALUE FOR [seq_usernotificationsid]) FOR [notification_id];
+GO
+
+-- Add foreign key to users table
+ALTER TABLE [user_notifications]
+ADD CONSTRAINT [FK_user_notifications_userid]
+FOREIGN KEY ([user_id]) REFERENCES [users]([user_id])
+ON UPDATE NO ACTION
+ON DELETE CASCADE;
+GO
+
+CREATE NONCLUSTERED INDEX IX_user_notifications_unread
+ON user_notifications (user_id, is_viewed, created_on DESC);
+GO

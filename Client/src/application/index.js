@@ -5,12 +5,13 @@ import AppHeader from '../components/AppHeader';
 import Profile from './Profile';
 import Dashboard from './Dashboard';
 import Wallet from './Wallet';
-import { checkUserDetailsAvailableAPI } from '../apis/user/checkUserDetailsAvailableAPI';
+import History from './History';
+import WalletHistory from './WalletHistory';
 
 function AppLayout() {
     const [bannerClose,setBannerClose] = useState(false);
     const [showBanner, setShowBanner] = useState(false);
-    const [isDetailsAvailable, setDetailsAvailable] = useState(false);
+    const [bannerMessage, setBannerMessage] = useState('');
 
     const navigate = useNavigate();
 
@@ -18,50 +19,27 @@ function AppLayout() {
         setBannerClose(true);
     }
 
-    useEffect(() => {
-        const checkProfileStatus = async () => {
-          try {
-            let userId = sessionStorage.getItem("userId") || localStorage.getItem("userId");
-            let token = sessionStorage.getItem("token") || localStorage.getItem("token");
-
-            if (!userId || !token) return;
-
-            const res = await checkUserDetailsAvailableAPI(userId, token);
-            console.log(res)
-
-            if (res.status === 203 || res.message === false) {
-              // ❌ User profile incomplete → Show banner
-              setShowBanner(true);
-            } else {
-              // ✅ User profile complete
-              setShowBanner(false);
-              setDetailsAvailable(true);
-            }
-          } catch (err) {
-            console.error("Error checking profile completeness:", err);
-            if(err?.status === 403) {
-                navigate('/403');
-            }
-          }
-        };
-
-        checkProfileStatus();
-    }, []);
-
-
     return (
         <div className="app_layout">
             {
-                showBanner && !bannerClose && <CustomBanner message={'Please complete your profile before start playing!'} closeBanner={closeBanner}/>
+                showBanner && !bannerClose && <CustomBanner message={bannerMessage} closeBanner={closeBanner}/>
             }
             <div className='app_inner_layout'>
                 <div className='app_inner_left'>
                     <AppHeader />
                     <Routes>
                         <Route path="/" element={<Navigate to="/app/dashboard" />} />
-                        <Route path="/dashboard" element={<Dashboard isDetailsAvailable={isDetailsAvailable} setShowBanner={setShowBanner} setBannerClose={setBannerClose}/>}/>
+                        <Route path="/dashboard" element={
+                            <Dashboard 
+                                setShowBanner={setShowBanner} 
+                                setBannerClose={setBannerClose} 
+                                setBannerMessage={setBannerMessage}
+                            />
+                        }/>
                         <Route path="/profile" element={<Profile/>} />
                         <Route path="/wallet" element={<Wallet />}/>
+                        <Route path="/wallet/history" element={<WalletHistory />}/>
+                        <Route path="/history" element={<History />}/>
                     </Routes>
                 </div>
                 {
