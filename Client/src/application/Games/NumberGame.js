@@ -515,14 +515,17 @@ function NumberGame() {
             </div>
           )}
 
-          <div className="coins-icon-holder" onClick={() => setShowBidPopModal((prev) => !prev)}>
-            <div><span>{Object.entries(bids).length > 0 ? Object.entries(bids).length : 0}</span></div>
-            <RiCoinsFill size={18}/>
+          <div className="game-stats-coins-holder">
+            <div className="game-stats">
+              Your Bid : ₹{Object.values(bids).reduce((sum, amt) => sum + Number(amt), 0)}/-
+            </div>
+
+            <div className="coins-icon-holder" onClick={() => setShowBidPopModal((prev) => !prev)}>
+              <div><span>{Object.entries(bids).length > 0 ? Object.entries(bids).length : 0}</span></div>
+              <RiCoinsFill size={18}/>
+            </div>
           </div>
           
-          <div className="game-stats">
-            Your Bid : ₹{Object.values(bids).reduce((sum, amt) => sum + Number(amt), 0)}/-
-          </div>
           <img src={image1} className="roulette-img"/>
         </div>
 
@@ -550,9 +553,14 @@ function NumberGame() {
               {[1, 2, 3, 4, 5, 6].map((num) => (
                 <div
                   key={num}
-                  className={`game-board-number number${num} ${
-                    bids[num] ? "chosen" : ""
-                  }`}
+                  className={`game-board-number number${num} 
+                    ${
+                      bids[num] ? "chosen" : ""
+                    } 
+                    ${
+                      (sessionState?.status === "SETTLED" || sessionState?.status === "RESULTS") && sessionState?.results?.filter(r => r === num).length > 1 && 'winner'
+                    }
+                  `}
                   onClick={(e) => handleNumberClick(e, num)}
                 >
                   <h1>{num}</h1>
