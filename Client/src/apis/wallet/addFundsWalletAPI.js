@@ -1,7 +1,7 @@
 import axios from "axios";
+import { ApiConfig } from "../ApiConfig";
 
-const BASE_URL='https://numbergameserver.onrender.com/api'
-const endpoint = BASE_URL+'/wallet/credit';
+const endpoint = ApiConfig.BASE_URL+'/wallet/credit';
 
 export const addFundsWalletAPI = async (userId, token, amount, reference_id, type='SELF') => {
     try{

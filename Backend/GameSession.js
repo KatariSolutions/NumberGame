@@ -17,8 +17,8 @@ class GameSession {
     this.io = io;
     this.running = false;
 
-    this.SESSION_MINUTES = opts.totalMinutes ?? 60; // adjust
-    this.ACTIVE_MINUTES = opts.activeMinutes ?? 40; //adjust
+    this.SESSION_MINUTES = opts.totalMinutes ?? 50; // adjust
+    this.ACTIVE_MINUTES = opts.activeMinutes ?? 30; //adjust
     this.LOCKED_MINUTES = opts.lockedMinutes ?? 5;
     this.RESULTS_MINUTES = this.SESSION_MINUTES - this.ACTIVE_MINUTES - this.LOCKED_MINUTES;
 
@@ -647,9 +647,9 @@ class GameSession {
         let payout = 0;
         if (chosenNum === 7) {
           const uniqueResults = Object.keys(resultCounts).length;
-          payout = uniqueResults === 6 ? amount * 6 : 0;
+          payout = uniqueResults === 6 ? (amount * 6) + amount : 0;
         } else {
-          payout = count > 1 ? amount * count : 0;
+          payout = count > 1 ? (amount * count)+amount : 0;
         }
       
         totalBid += amount;

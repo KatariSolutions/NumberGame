@@ -1,7 +1,7 @@
 import axios from "axios";
+import { ApiConfig } from "../ApiConfig";
 
-const BASE_URL='https://numbergameserver.onrender.com/api'
-const endpoint = BASE_URL+'/auth/update-password';
+const endpoint = ApiConfig.BASE_URL+'/auth/update-password';
 
 export const updatePwd = async (payload) => {
     try{

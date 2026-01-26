@@ -1,7 +1,7 @@
 import axios from "axios";
+import { ApiConfig } from "../ApiConfig";
 
-const BASE_URL='https://numbergameserver.onrender.com/api'
-const endpoint = BASE_URL+'/walletrequests/create';
+const endpoint = ApiConfig.BASE_URL+'/walletrequests/create';
 
 export const rechargeWalletRequestAPI = async (formData, token) => {
     try{

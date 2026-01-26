@@ -1,7 +1,7 @@
 import axios from "axios";
+import { ApiConfig } from "../ApiConfig";
 
-const BASE_URL='https://numbergameserver.onrender.com/api'
-const endpoint = BASE_URL+'/upload/upload-profile-pic';
+const endpoint = ApiConfig.BASE_URL+'/upload/upload-profile-pic';
 
 export const uploadProfile = async (formData, token) => {
     try{

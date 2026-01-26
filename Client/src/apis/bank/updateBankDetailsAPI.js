@@ -1,7 +1,7 @@
 import axios from "axios";
+import { ApiConfig } from "../ApiConfig";
 
-const BASE_URL='https://numbergameserver.onrender.com/api'
-const endpoint = BASE_URL+'/bank/update';
+const endpoint = ApiConfig.BASE_URL+'/bank/update';
 
 export const updateBankDetailsAPI = async (token, payload) => {
     try{

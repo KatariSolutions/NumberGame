@@ -1,7 +1,7 @@
 import axios from "axios";
+import { ApiConfig } from "../ApiConfig";
 
-const BASE_URL='https://numbergameserver.onrender.com/api'
-const endpoint = BASE_URL+'/bids/getBidsbySession';
+const endpoint = ApiConfig.BASE_URL+'/bids/getBidsbySession';
 
 export const getBidsbySessionAPI = async (session_id, user_id, token) => {
     try{

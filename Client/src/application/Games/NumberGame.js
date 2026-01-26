@@ -16,6 +16,9 @@ function NumberGame() {
   const navigate = useNavigate();
   const socketRef = useRef(null);
 
+  const gameServer = "https://numbergameserver.onrender.com";
+  // const gameServer = "http://localhost:8080/"
+
   // === State Variables ===
   const [quitModel, setQuitModel] = useState(false);
   const [isQuit, setQuit] = useState(false);
@@ -108,7 +111,7 @@ function NumberGame() {
     fetchWalletBalance();
 
     // Connect to backend
-    const socket = io("https://numbergameserver.onrender.com", {
+    const socket = io(gameServer, {
       auth: { token: `Bearer ${token}` },
     });
     socketRef.current = socket;
