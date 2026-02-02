@@ -11,13 +11,14 @@ import { toast } from "react-toastify";
 
 import image1 from '../../gallery/man-standing3.png';
 import StaticDice from "./StaticDice";
+import Cylinder3D from "../../components/Cylinder3D";
 
 function NumberGame() {
   const navigate = useNavigate();
   const socketRef = useRef(null);
 
   const gameServer = "https://numbergameserver.onrender.com";
-  // const gameServer = "http://localhost:8080/"
+  //const gameServer = "http://localhost:8080/"
 
   // === State Variables ===
   const [quitModel, setQuitModel] = useState(false);
@@ -55,6 +56,12 @@ function NumberGame() {
   const [rollTrigger, setRollTrigger] = useState(false);
   const [diceRollFinished, setDiceRollFinished] = useState(false);
 
+  const [cylinderAnimate, setCylinderAnimate] = useState(false);
+  const [cylinderVisible, setCylinderVisible] = useState(true);
+  const [diceLayoutAnimate, setDiceLayoutAnimate] = useState(false);
+
+  const [placeBetPop, setPlaceBetPop] = useState(false);
+
   // === Reset for new session ===
   const resetForNewSession = () => {
     console.log("🔄 New session detected — resetting game state");
@@ -68,6 +75,10 @@ function NumberGame() {
     setDiceResults([6, 6, 6, 6, 6, 6]);
     setRollTrigger(false);
     setDiceRollFinished(false);
+    setCylinderAnimate(false);
+    setCylinderVisible(true);
+    setDiceLayoutAnimate(false);
+    setPlaceBetPop(false);
   };
 
   // fetch wallet balance from endpoint
@@ -129,10 +140,19 @@ function NumberGame() {
 
       if (sessionState && data.status === "SETTLED") {
         // future redirect logic here
+        setCylinderAnimate(false);
+        setCylinderVisible(false);
+        setDiceLayoutAnimate(true);
+        setDiceRollFinished(true);
+        setPlaceBetPop(false);
       }
 
       setSessionState(data);
       setIsActive(data.status === "ACTIVE");
+      if(data.status === "ACTIVE"){
+        setCylinderAnimate(true);
+        setPlaceBetPop(true);
+      }
 
       const now = Date.now();
       setActiveTimeLeft(new Date(data.lockAt).getTime() - now);
@@ -154,20 +174,41 @@ function NumberGame() {
         return newUpdates.slice(-20);
       });
 
+      /*
+      if(update.type === "SESSION" && update.message === "Session Locked!"){
+        setCylinderAnimate(false);
+        setCylinderVisible(false);
+        setDiceLayoutAnimate(true);
+        setDiceRollFinished(true);
+      }
+      */
+
       if(update.type === "SESSION" && update.message === "Computing Results!!"){
-        setRollTrigger(true);
+        //setRollTrigger(true);
+        setCylinderAnimate(false);
       }
 
       if(update.type === "SESSION" && update.message === "Results Declared!") {
         // simulate receiving 6 random dice results
         const results = update?.results || [6,6,6,6,6,6];
-        console.log("🎯 Received dice results from backend:", results);
+        // console.log("🎯 Received dice results from backend:", results);
         setDiceResults(results);
         // turn off trigger after animation completes (to allow re-triggering)
+        
+        /*
         setTimeout(() => {
           setRollTrigger(false);
           setDiceRollFinished(true);
+          setCylinderAnimate(false);
+          setCylinderVisible(false);
         }, 2500);
+        */
+
+        setCylinderAnimate(false);
+        setCylinderVisible(false);
+        setDiceLayoutAnimate(true);
+        setDiceRollFinished(true);
+        setPlaceBetPop(false);
 
         setTimeout(()=>{
           if(isParticipatedRef.current){
@@ -353,6 +394,18 @@ function NumberGame() {
   // === Main Game UI ===
   return (
     <div className="game-outer number-game">
+      {
+        /* Game popups */
+      }
+      {
+        placeBetPop && 
+        <div className={`game-overlay-pop`}>
+          <div className="game-overlay-pop-text" onAnimationEnd={() => setPlaceBetPop(false)}>
+            <h2>Place your bet</h2>
+          </div>
+        </div>
+      }
+
       {/* Quit Transition */}
       {isQuit && (
         <div className="modal">
@@ -514,24 +567,12 @@ function NumberGame() {
               ))}
             </div>
           )}
-
-          <div className="game-stats-coins-holder">
-            <div className="game-stats">
-              Your Bid : ₹{Object.values(bids).reduce((sum, amt) => sum + Number(amt), 0)}/-
-            </div>
-
-            <div className="coins-icon-holder" onClick={() => setShowBidPopModal((prev) => !prev)}>
-              <div><span>{Object.entries(bids).length > 0 ? Object.entries(bids).length : 0}</span></div>
-              <RiCoinsFill size={18}/>
-            </div>
-          </div>
           
-          <img src={image1} className="roulette-img"/>
-        </div>
+          {/*<img src={image1} className="roulette-img"/>*/}
 
-        <div className="game-lower-body">
-          <div className="game-board-outer">
-            <div className="dice-layout">
+          <div className="dice-layout-wrapper">
+            {cylinderVisible && <Cylinder3D animate={cylinderAnimate}/>}
+            <div className={`dice-layout ${diceLayoutAnimate && 'animate'}`}>
               {
                 diceRollFinished 
                 ? <>
@@ -544,11 +585,27 @@ function NumberGame() {
                 </>
                 : <>
                   {diceResults.map((num, i) => (
-                    <DiceRoll key={i} targetNumber={num} trigger={rollTrigger} />
+                    <DiceRoll key={i} targetNumber={num} trigger={false} />
                   ))}
                 </>
               }
             </div>
+          </div>
+
+          <div className="game-stats-coins-holder">
+            <div className="game-stats">
+              Your Bid : ₹{Object.values(bids).reduce((sum, amt) => sum + Number(amt), 0)}/-
+            </div>
+
+            <div className="coins-icon-holder" onClick={() => setShowBidPopModal((prev) => !prev)}>
+              <div><span>{Object.entries(bids).length > 0 ? Object.entries(bids).length : 0}</span></div>
+              <RiCoinsFill size={18}/>
+            </div>
+          </div>
+        </div>
+
+        <div className="game-lower-body">
+          <div className="game-board-outer">
             <div className="game-board">
               {[1, 2, 3, 4, 5, 6].map((num) => (
                 <div

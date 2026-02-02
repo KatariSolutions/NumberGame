@@ -13,6 +13,7 @@
 @import url('./games/DiceRoll.css');
 @import url('./games/GameSummary.css');
 @import url('./app/landingpage.css');
+@import url('./components/Cylinder.css');
 /* your other styles */
 body {
   font-family: var(--font-family-primary);
