@@ -592,6 +592,9 @@ function NumberGame() {
             </div>
           </div>
 
+        </div>
+
+        <div className="game-lower-body">
           <div className="game-stats-coins-holder">
             <div className="game-stats">
               Your Bid : ₹{Object.values(bids).reduce((sum, amt) => sum + Number(amt), 0)}/-
@@ -602,9 +605,7 @@ function NumberGame() {
               <RiCoinsFill size={18}/>
             </div>
           </div>
-        </div>
 
-        <div className="game-lower-body">
           <div className="game-board-outer">
             <div className="game-board">
               {[1, 2, 3, 4, 5, 6].map((num) => (

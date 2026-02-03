@@ -344,6 +344,11 @@
     width: 100%;
     /*height: 50%;
     min-height: calc(50dvh - 25px);*/
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-around;
 }
 .game-lower-body .game-board-outer{
     width: 100%;
@@ -367,7 +372,7 @@
 .dice-layout-wrapper {
   width: 100%;
   height: 60%;
-  min-height: 240px;
+  min-height: 200px;
 
   display: flex;
   align-items: center;
@@ -377,7 +382,7 @@
 }
 .dice-layout{
     width: 100%;
-    max-width: 280px !important;
+    max-width: 120px !important;
     padding: .5rem;
 
     background-color: var(--bg-secondary-dark);
@@ -546,7 +551,7 @@
   text-align: center;
 }
 
-.game-upper-body .coins-icon-holder{
+.game-lower-body .coins-icon-holder{
     padding: 10px;
     background-color: var(--bg-secondary);
     border-radius: 6px;
@@ -810,7 +815,7 @@
 
   .dice-layout {
     width: auto;
-    max-width: none;
+    max-width: 150px;
     padding: .3rem;
     justify-content: center;
   }

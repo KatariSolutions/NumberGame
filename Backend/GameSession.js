@@ -17,8 +17,8 @@ class GameSession {
     this.io = io;
     this.running = false;
 
-    this.SESSION_MINUTES = opts.totalMinutes ?? 50; // adjust
-    this.ACTIVE_MINUTES = opts.activeMinutes ?? 30; //adjust
+    this.SESSION_MINUTES = opts.totalMinutes ?? 30; // adjust
+    this.ACTIVE_MINUTES = opts.activeMinutes ?? 20; //adjust
     this.LOCKED_MINUTES = opts.lockedMinutes ?? 5;
     this.RESULTS_MINUTES = this.SESSION_MINUTES - this.ACTIVE_MINUTES - this.LOCKED_MINUTES;
 
