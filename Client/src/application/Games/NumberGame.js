@@ -215,7 +215,7 @@ function NumberGame() {
             socket.emit("leave_session");
             navigate('/game/summary');
           }
-        },7000);
+        },3000);
       }
     });
 
