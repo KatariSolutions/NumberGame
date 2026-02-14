@@ -45,13 +45,16 @@ authRouter.post("/register", registerLimiter, async (req, res) => {
       .input("password_hash", hashed)
       .input("phone",phone)
       .query(`
-        INSERT INTO Users (email, password_hash, phone)
+        INSERT INTO Users (email, password_hash, phone, is_verified,is_active)
         OUTPUT INSERTED.user_id
-        VALUES (@email, @password_hash, @phone)
+        VALUES (@email, @password_hash, @phone, 1, 1)
       `);
 
     // Extract userId from result
     const userId = userResult.recordset[0].user_id;
+
+    /*
+    OTP functionality - removed
 
     // generate OTPs
     const emailOTP = generateOTP();
@@ -67,12 +70,29 @@ authRouter.post("/register", registerLimiter, async (req, res) => {
 
     // send email OTP
     await sendOtpEmail(email, emailOTP);
-
+    */
+    
+    // Create wallet for user
     await pool.request()
         .input('user_id', userId)
         .query('INSERT INTO wallets (user_id, balance, last_updated) VALUES (@user_id, 0, GETUTCDATE())');
 
-    res.status(201).json({status : 201, message: "User registered", userId });
+    const expiresIn = "24h";
+    const hoursToAdd = 24;
+
+    // create new token
+    const token = jwt.sign({ userId: userId }, config.jwtsecret, { expiresIn });
+
+    // Step 3 : Create new login session
+    await pool.request()
+      .input("user_id", userId)
+      .input("token", token)
+      .query(`
+        INSERT INTO login_sessions (user_id, token, is_active, session_starttime, session_endtime)
+        VALUES (@user_id, @token, 1, GETUTCDATE(), DATEADD(hour, ${hoursToAdd}, GETUTCDATE()))
+      `);
+
+    res.status(201).json({status : 201, message: "User registered", userId, token });
   } catch (err) {
     console.error(err);
     res.status(500).json({ status:500, message: 'Server error' });

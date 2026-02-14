@@ -68,25 +68,18 @@ function Register() {
       })
       setIsFetching(false);
       return;
-    } else if(!data.isChecked){
-      setIsError(true);
-      setError({
-        type:'check',
-        message: 'Please check the box before procceding'
-      })
-      setIsFetching(false);
-      return;
     } else {
       try{
         const res = await registerAPI(data);
         if(res.status === 201) {
           setSuccess(1);
           localStorage.setItem('userId',res.userId);
+          localStorage.setItem('token',res.token);
 
-          toast.success('OTP Sent to email. Please Check!')
+          toast.success('Registered successfully!');
           setTimeout(()=>{
-            navigate('../verify-otp');
-          }, 3000)
+            navigate('/app/dashboard');
+          }, 1000)
         } else {
           setIsFetching(false);
           setIsServerError(true);
@@ -105,6 +98,16 @@ function Register() {
       }
     }
   }
+
+  {/*else if(!data.isChecked){
+      setIsError(true);
+      setError({
+        type:'check',
+        message: 'Please accept our terms before procceding'
+      })
+      setIsFetching(false);
+      return;
+  }*/}
 
   return (
     <div className='registration-outer'>
@@ -169,6 +172,7 @@ function Register() {
                 onChange={handleChange}
               />
             </div>
+            {/*
             <div className='input-box checkbox'>
               <input 
                 type='checkbox' 
@@ -181,6 +185,7 @@ function Register() {
             {
               (isError && error.type=='check') && <span className='error-msg red'>{error.message}</span>
             }
+            */}
             <div className='button-box'>
               {
                 isFetching
