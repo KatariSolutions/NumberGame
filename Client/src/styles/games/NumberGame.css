@@ -436,6 +436,7 @@
     border: 1px solid #7a4300;
 
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
 
@@ -454,6 +455,24 @@
     font-size: var(--font-l);
     color: var(--font-primary);
 }
+.game-board-number .money-card{
+  font-size: 8px;
+  font-weight: var(--wt-bold);
+  text-align: center;
+  padding: 2px 6px;
+  background-color: var(--font-primary);
+  border-radius: 2px;
+
+  background: linear-gradient(
+    135deg,
+    #f9d976 0%,
+    #f5c542 25%,
+    #d4af37 50%,
+    #f5c542 75%,
+    #f9d976 100%
+  );
+  color: #5c4300;
+}
 .game-board-outer .game-board-all-suit{
   width: 95%;
   height: 30px;
@@ -469,6 +488,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 5px;
 
   cursor: pointer;
 }

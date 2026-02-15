@@ -13,7 +13,7 @@ function GameSummary({ summary: summaryProp }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const [countdown, setCountdown] = useState(3);
+  const [countdown, setCountdown] = useState(5);
   const countdownIntervalRef = useRef(null);
 
   // Load user credentials

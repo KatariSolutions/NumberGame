@@ -2,14 +2,13 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import io from "socket.io-client";
 import logo from "../../gallery/logo.svg";
-import { IoLockClosed, IoTrash, IoChevronDown, IoChevronUp, IoClose } from "react-icons/io5";
+import { IoTrash, IoChevronDown, IoChevronUp, IoClose } from "react-icons/io5";
 import { RiCoinsFill } from "react-icons/ri";
 import GameMusicPlayer from "./GameMusicPlayer";
 import DiceRoll from "./DiceRoll";
 import { getWalletBalanceAPI } from "../../apis/wallet/getWalletBalanceAPI";
 import { toast } from "react-toastify";
 
-import image1 from '../../gallery/man-standing3.png';
 import StaticDice from "./StaticDice";
 import Cylinder3D from "../../components/Cylinder3D";
 
@@ -597,7 +596,7 @@ function NumberGame() {
         <div className="game-lower-body">
           <div className="game-stats-coins-holder">
             <div className="game-stats">
-              Your Bid : ₹{Object.values(bids).reduce((sum, amt) => sum + Number(amt), 0)}/-
+              Total Bid : ₹{Object.values(bids).reduce((sum, amt) => sum + Number(amt), 0)}/-
             </div>
 
             <div className="coins-icon-holder" onClick={() => setShowBidPopModal((prev) => !prev)}>
@@ -622,7 +621,7 @@ function NumberGame() {
                   onClick={(e) => handleNumberClick(e, num)}
                 >
                   <h1>{num}</h1>
-                  {bids[num] && <IoLockClosed />}
+                  {bids[num] && <div className="money-card">₹{bids[num]}</div>}
                 </div>
               ))}
             </div>
@@ -633,7 +632,7 @@ function NumberGame() {
               onClick={(e) => handleNumberClick(e, 7)}
             >
               <h1>All Suit</h1>
-              {bids[7] && <IoLockClosed />}
+              {bids[7] && <div className="money-card">₹{bids[7]}</div>}
             </div>
             <div className="money-options">
               {
