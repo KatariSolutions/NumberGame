@@ -161,7 +161,7 @@ function NumberGame() {
     socket.on("personal_result_preview", (payload) => {
       // removing session
       localStorage.removeItem('gameSummary');
-      console.log("Personal preview : ", payload);
+      //console.log("Personal preview : ", payload);
       localStorage.setItem('gameSummary', JSON.stringify(payload));
     })
 
@@ -240,12 +240,12 @@ function NumberGame() {
   }, [navigate]);
 
   // === Debug: log session ===
-  useEffect(()=>{
-    console.log('Live updates : ', liveUpdates);
-  },[liveUpdates])
-  useEffect(() => {
-    if (sessionState) console.log("SessionState:", sessionState);
-  }, [sessionState]);
+  //useEffect(()=>{
+  //  console.log('Live updates : ', liveUpdates);
+  //},[liveUpdates])
+  //useEffect(() => {
+  //  if (sessionState) console.log("SessionState:", sessionState);
+  //}, [sessionState]);
 
   // === Timer 1: Active phase countdown ===
   useEffect(() => {
@@ -297,7 +297,9 @@ function NumberGame() {
   const handleNumberClick = (e, number) => {
     e.preventDefault();
     if (!isActive) return;
+    if (!amount || amount <= 0) return;
     setChosen(number);
+    handleBid(number);
     //setAmount(bids[number] || ""); // preload amount if exists
     //setBidModal(true);
   };
@@ -307,9 +309,7 @@ function NumberGame() {
     e.preventDefault();
     //console.log(isActive, chosen, money);
     if(!isActive) return;
-    if(!chosen) return;
     setAmount(money);
-    handleBid(money);
   }
 
   const cancelBid = (e) => {
@@ -323,34 +323,34 @@ function NumberGame() {
   const getTotalBids = () => {
     return Object.values(bids).reduce((sum, amt) => sum + Number(amt || 0), 0);
   };
-  const handleBid = (money) => {
+  const handleBid = (number) => {
     //e.preventDefault();
     const socket = socketRef.current;
     if (!socket) return;
 
-    const amt = money;
+    const amt = amount;
+    const chosen_number = number;
 
     const userId = sessionStorage.getItem("userId") || localStorage.getItem("userId");
     //console.log(!amt, isNaN(amt), Number(amt) <= 0)
     if (!amt || isNaN(amt) || Number(amt) <= 0) return;
     
-    const chosen_number = chosen;
     const payload = {
       userId,
       chosen_number,
       amount: Number(amt),
     };
+    console.log(payload);
 
     // Emit bid to backend
     socket.emit("place_bid", payload);
     
     setBids((prev) => ({
       ...prev,
-      [chosen]: Number(amt),
+      [number]: Number(amt),
     }));
     setBidModal(false);
     setChosen(null);
-    setAmount("");
     setParticipation(true);
   };
   
@@ -638,7 +638,10 @@ function NumberGame() {
               {
                 [100,200,300,400,500,1000,5000,10000,20000,50000].map((money) => (
                   <div 
-                    className={`money-card ${money <= (walletBalance - getTotalBids() + (bids[chosen] || 0)) ? 'enable' : 'disable'}`}
+                    className={`
+                      money-card ${money <= (walletBalance - getTotalBids() + (bids[chosen] || 0)) ? 'enable' : 'disable'}
+                      ${money === amount && 'chosen'}
+                    `}
                     onClick={(e) => handleMoneyClick(e,money)}
                   >
                     ₹{money}
