@@ -491,10 +491,8 @@
   cursor: pointer;
 }
 .game-board-outer .game-board-all-suit.chosen{
-  filter: brightness(0.5);
-}
-.game-board-outer .game-board-all-suit:hover{
-    filter: brightness(0.75);
+  background: #74b9ff;
+  color: #f5c542;
 }
 .game-board-all-suit h1{
   font-size: 0.8rem !important;
