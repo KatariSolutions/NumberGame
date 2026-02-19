@@ -1,9 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IoPlayCircle } from 'react-icons/io5';
-import { checkUserDetailsAvailableAPI } from '../apis/user/checkUserDetailsAvailableAPI';
 import bg from '../gallery/gaming-banner.png';
-import { getWalletBalanceAPI } from '../apis/wallet/getWalletBalanceAPI';
 import { toast } from 'react-toastify';
 import { getGameStatusAPI } from '../apis/games/getGameStatusAPI';
 
@@ -95,7 +93,7 @@ function Dashboard(props) {
       let userId = sessionStorage.getItem("userId") || localStorage.getItem("userId");
       let token = sessionStorage.getItem("token") || localStorage.getItem("token");
       const res = await getGameStatusAPI(token);
-      console.log(res)
+      //console.log(res)
       if (res.status === 201) {
         if(res.result?.is_active){
           setIsGameActive(true);
@@ -114,7 +112,7 @@ function Dashboard(props) {
         toast.error(res.message);
       }
     } catch (err) {
-      console.error("Error checking profile completeness:", err);
+      //console.error("Error checking profile completeness:", err);
       if(err?.status === 403) {
           navigate('/403');
       }

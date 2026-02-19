@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { IoPencil, IoWallet, IoTimeOutline, IoAdd, IoRefresh } from "react-icons/io5";
+import { IoWallet, IoTimeOutline, IoAdd } from "react-icons/io5";
 import { MdEdit } from "react-icons/md";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { toast } from "react-toastify";
@@ -100,7 +100,7 @@ function Profile() {
         toast.error(res.message);
       }
     } catch (err) {
-      console.error(err);
+      //console.error(err);
       if(err?.status === 403) {
         navigate('/403');
       }
@@ -131,7 +131,7 @@ function Profile() {
         toast.error(res.message);
       }
     } catch (err) {
-      console.log(err);
+      //console.log(err);
       if(err?.status === 403) {
         navigate('/403');
       }
@@ -175,7 +175,7 @@ function Profile() {
         toast.error(res.message);
       }
     } catch (err) {
-      console.log(err);
+      //console.log(err);
       if(err?.status === 403) {
         navigate('/403');
       }
@@ -206,7 +206,7 @@ function Profile() {
         toast.error(res.message);
       }
     } catch (err) {
-      console.error(err);
+      //console.error(err);
       if(err?.status === 403) {
         navigate('/403');
       }
@@ -336,7 +336,7 @@ function Profile() {
         toast.error(res.message);
       }
     } catch (err) {
-      console.error("Error updating profile:", err);
+      //console.error("Error updating profile:", err);
       toast.error(err.error || "Failed to update profile. Please try again.");
       if(err?.status === 403) {
         navigate('/403');

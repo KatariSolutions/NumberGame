@@ -19,7 +19,7 @@ class GameSession {
 
     this.SESSION_MINUTES = opts.totalMinutes ?? 35; // adjust
     this.ACTIVE_MINUTES = opts.activeMinutes ?? 25; //adjust
-    this.LOCKED_MINUTES = opts.lockedMinutes ?? 0;
+    this.LOCKED_MINUTES = opts.lockedMinutes ?? 2;
     this.RESULTS_MINUTES = this.SESSION_MINUTES - this.ACTIVE_MINUTES - this.LOCKED_MINUTES;
 
     this.SESSION_MS = this.SESSION_MINUTES * 1000;
@@ -104,6 +104,7 @@ class GameSession {
 
     return {
       sessionId: uuidv4(), // short-term id in-memory; we'll persist to DB with sequence session_id
+      dbSessionId: null,
       startedAt: now,
       status: 'ACTIVE',
       endsAt: now + this.SESSION_MS,
@@ -120,7 +121,7 @@ class GameSession {
   async startSessionLoop() {
     // If already running timers, don't create duplicates
     if (this.tickInterval || this.batchTimer) {
-      console.log('GameSession already running (timers present), skipping start.');
+      //console.log('GameSession already running (timers present), skipping start.');
       return;
     }
     const active = await this.checkIfActive();
@@ -264,7 +265,7 @@ class GameSession {
         timestamp: new Date(),
       });
 
-      console.log(`👋 ${username} (userId: ${uid}) joined session`);
+      //console.log(`👋 ${username} (userId: ${uid}) joined session`);
     } catch (err) {
       console.error("❌ handleJoin error:", err);
       socket.emit("error", { message: "Failed to join session." });
@@ -292,7 +293,7 @@ class GameSession {
           : `User${uid}`;
 
       if(!this.current){
-        console.log('No current session');
+        //console.log('No current session');
         await this.startSessionLoop();
         return;
       }
@@ -325,7 +326,7 @@ class GameSession {
         timestamp: new Date(),
       });
   
-      console.log(`👋 ${username} (userId: ${uid}) left session`);
+      //console.log(`👋 ${username} (userId: ${uid}) left session`);
     } catch (err) {
       console.error("❌ handleLeave error:", err);
       socket.emit("error", { message: "Failed to leave session." });
@@ -345,7 +346,7 @@ class GameSession {
 
     const { chosen_number, amount } = payload;
     if (typeof chosen_number !== "number" || !Number.isInteger(chosen_number)) {
-      return socket.emit("bid_rejected", { reason: "Invalid chosen_number" });
+      return socket.emit("bid_rejected", { reason: "Invalid number chosen" });
     }
 
     const amt = Number(amount);
@@ -411,7 +412,7 @@ class GameSession {
       // === 7️⃣ Emit new session state ===
       this.emitSessionStateToAll();
 
-      console.log(`🎯 ${username} placed a bid: #${chosen_number} → ₹${amt}`);
+      //console.log(`🎯 ${username} placed a bid: #${chosen_number} → ₹${amt}`);
     } catch (err) {
       console.error("❌ handlePlaceBid error:", err);
       socket.emit("bid_rejected", { reason: "Error placing bid" });
@@ -433,7 +434,7 @@ class GameSession {
   
     const { chosen_number } = payload;
     if (typeof chosen_number !== "number" || !Number.isInteger(chosen_number)) {
-      return socket.emit("bid_delete_failed", { reason: "Invalid chosen_number" });
+      return socket.emit("bid_delete_failed", { reason: "Invalid number chosen" });
     }
   
     const userKey = String(uid);
@@ -486,7 +487,7 @@ class GameSession {
         timestamp: new Date(),
       });
   
-      console.log(`🗑️ ${username} deleted bid on number ${chosen_number}`);
+      //console.log(`🗑️ ${username} deleted bid on number ${chosen_number}`);
     } catch (err) {
       console.error("❌ handleDeleteBid error:", err);
       socket.emit("bid_delete_failed", { reason: "Error deleting bid" });
@@ -501,7 +502,7 @@ class GameSession {
     s.status = 'LOCKED';
     // immediate persist of session row and current bids
     try {
-      await this.persistSessionAndBids(s);
+      await this.persistSessionAndBids();
       this.io.to('GLOBAL_GAME_ROOM').emit('session_locked', { sessionId: s.sessionId });
       this.emitSessionStateToAll();
 
@@ -510,7 +511,7 @@ class GameSession {
         message: `Session Locked!`,
       });
 
-      console.log('Session locked and persisted.');
+      //console.log('Session locked and persisted.');
     } catch (err) {
       console.error('Error persisting bids at lock:', err);
       // still continue to calculate results; but you may want to handle retries
@@ -520,7 +521,8 @@ class GameSession {
   }
 
   // Persist session metadata and bids into DB using your schema
-  async persistSessionAndBids(s) {
+  async persistSessionAndBids() {
+    const s = this.current;
     // Persist a row to game_sessions and then insert all bids rows
     // We'll use a transaction to ensure atomicity
     const tx = new sql.Transaction(pool);
@@ -539,6 +541,9 @@ class GameSession {
       const inserted = await req.query(insertSessionSql);
       const dbSessionId = inserted.recordset?.[0]?.session_id;
       if (!dbSessionId) throw new Error('Failed to insert game_sessions');
+
+      // store dbSessionId so we can reference later
+      s.dbSessionId = dbSessionId;
 
       // Bulk insert bids (one row per user) using table-valued approach or batched insert
       // Simpler: build a single INSERT with multiple values (careful with many users)
@@ -593,9 +598,7 @@ class GameSession {
 
       await tx.commit();
 
-      // store dbSessionId so we can reference later
-      s.dbSessionId = dbSessionId;
-      console.log('Persisted session and bids. session_id:', dbSessionId);
+      //console.log('Persisted session and bids. session_id:', dbSessionId);
       this.emitSessionStateToAll();
     } catch (err) {
       await tx.rollback();
@@ -629,7 +632,7 @@ class GameSession {
     const results = s.results;
     const resultCounts = s.resultCounts;
 
-    console.log("🎲 Computed Results:", results, "Counts:", resultCounts);
+    //console.log("🎲 Computed Results:", results, "Counts:", resultCounts);
 
     // === STEP 2: Compute per-user winnings ===
     const userResults = [];
@@ -709,6 +712,7 @@ class GameSession {
     
       // If persisted session missing, insert one
       let dbSessionId = s.dbSessionId;
+      //console.log('persisted db session id : ',dbSessionId);
       if (!dbSessionId) {
         req.input("sessionMs", sql.BigInt, this.SESSION_MS);
         req.input("activeMs", sql.BigInt, this.ACTIVE_MS);
@@ -718,6 +722,7 @@ class GameSession {
           VALUES (GETDATE(), DATEADD(ms, @sessionMs, GETDATE()), DATEADD(ms, @activeMs, GETDATE()), GETDATE())
         `);
         dbSessionId = inserted.recordset?.[0]?.session_id;
+        s.dbSessionId = dbSessionId;
       }
     
       const w_num = results.join(''); // e.g. "134523"
@@ -764,7 +769,7 @@ class GameSession {
       }
 
       await tx.commit();
-      console.log("✅ Results settled for session", dbSessionId);
+      //console.log("✅ Results settled for session", dbSessionId);
     } catch (err) {
       await tx.rollback();
       console.error("❌ Error saving results/payouts", err);
@@ -784,7 +789,7 @@ class GameSession {
     // gracefully end old session
     const old = this.current;
     if (!old) {
-      console.log('endSessionAndStartNew called but there is no current session.');
+      //console.log('endSessionAndStartNew called but there is no current session.');
       return;
     }
 
@@ -809,7 +814,7 @@ class GameSession {
       console.error('Error checking game_control flag, defaulting to inactive.', err);
       active = false;
     }
-    console.log('active flag : ', active);
+    //console.log('active flag : ', active);
     if (!active) {
       // Do NOT start a new session. Put server in paused state.
       this.io.to("GLOBAL_GAME_ROOM").emit("new_session", { message: "Game paused by admin" });

@@ -64,7 +64,7 @@ function GameSummary({ summary: summaryProp }) {
   const fetchBids = async (sessionId, userId) => {
     try {
       const res = await getBidsbySessionAPI(sessionId, userId, token);
-      console.log(res);
+      //console.log(res);
       if (res.status === 201) {
         setUserBids(res.result);
       } else if (res.status === 403) {
@@ -90,6 +90,7 @@ function GameSummary({ summary: summaryProp }) {
 
   // === Fetch bids once summary is available ===
   useEffect(() => {
+    //console.log(summary);
     if (summary?.dbSessionId && summary?.userId) {
       fetchBids(summary.dbSessionId, summary.userId);
     }
@@ -128,19 +129,18 @@ function GameSummary({ summary: summaryProp }) {
         </div>
 
         <div className="summary-details">
+          <p><strong>Total Bids:</strong> ₹{totalBid}</p>
+          <p><strong>Total Payout:</strong> ₹{totalPayout}</p>
+          <p className={net > 0 ? 'profit' : 'loss'}>
+            <strong>Net Result:</strong> {net > 0 ? `+₹${net}` : `₹${net}`}
+            ({net > 0 ? 'credited to your wallet' :'deducted from your wallet'})
+          </p>
           {loading ? (
-            <p>Loading bid details...</p>
+            <p>...</p>
           ) : error ? (
             <p className="error-text">{error}</p>
           ) : (
             <>
-              <p><strong>Total Bids:</strong> ₹{totalBid}</p>
-              <p><strong>Total Payout:</strong> ₹{totalPayout}</p>
-              <p className={net > 0 ? 'profit' : 'loss'}>
-                <strong>Net Result:</strong> {net > 0 ? `+₹${net}` : `₹${net}`}
-                ({net > 0 ? 'credited to your wallet' :'deducted from your wallet'})
-              </p>
-
               {userBids.length > 0 && (
                 <div className="bids-list">
                   <table className="bids-table">
@@ -149,7 +149,7 @@ function GameSummary({ summary: summaryProp }) {
                         <th>Chosen</th>
                         <th>Amount (₹)</th>
                         <th>Multiplier</th>
-                        <th>Total (₹)</th>
+                        <th>Profit/Loss (₹)</th>
                       </tr>
                     </thead>
                     <tbody>

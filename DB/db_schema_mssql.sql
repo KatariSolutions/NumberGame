@@ -654,3 +654,48 @@ GO
 CREATE NONCLUSTERED INDEX IX_user_notifications_unread
 ON user_notifications (user_id, is_viewed, created_on DESC);
 GO
+
+
+/*
+===========================================
+	PASSWORD_RESET_REQUESTS
+===========================================
+*/
+-- Create sequence for primary key
+CREATE SEQUENCE seq_passwordresetrequestid AS BIGINT
+START WITH 1
+INCREMENT BY 1
+MINVALUE -9223372036854775808
+MAXVALUE 9223372036854775807
+CACHE;
+GO
+
+-- Drop table if exists
+DROP TABLE IF EXISTS [password_reset_requests];
+GO
+
+-- Create table
+CREATE TABLE [password_reset_requests] (
+    [request_id] BIGINT NOT NULL,
+    [user_id] BIGINT NOT NULL,
+	[status] VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+	[admin_note] VARCHAR(255),
+	[created_at] DATETIME DEFAULT SYSDATETIME(),
+	[updated_at] DATETIME,
+    CONSTRAINT [PK_passwordresetrequest_Id] PRIMARY KEY CLUSTERED ([request_id] ASC)
+        WITH (FILLFACTOR = 80)
+) ON [PRIMARY];
+GO
+
+-- Add default from sequence for wallet_id
+ALTER TABLE [password_reset_requests] 
+ADD DEFAULT (NEXT VALUE FOR [seq_passwordresetrequestid]) FOR [request_id];
+GO
+
+-- Add foreign key to users table
+ALTER TABLE [password_reset_requests]
+ADD CONSTRAINT [FK_passwordresetrequests_userid]
+FOREIGN KEY ([user_id]) REFERENCES [users]([user_id])
+ON UPDATE NO ACTION
+ON DELETE NO ACTION;
+GO

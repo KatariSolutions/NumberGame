@@ -86,7 +86,7 @@ function Register() {
           setServerStatus(res.message);
         }
       } catch (err) {
-        console.error(err);
+        //console.error(err);
         if(err?.status === 403) {
           navigate('/403');
         }

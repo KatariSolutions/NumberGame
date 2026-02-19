@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import io from "socket.io-client";
 import logo from "../../gallery/logo.svg";
-import { IoTrash, IoChevronDown, IoChevronUp, IoClose } from "react-icons/io5";
+import { IoTrash, IoClose } from "react-icons/io5";
 import { RiCoinsFill } from "react-icons/ri";
 import GameMusicPlayer from "./GameMusicPlayer";
 import DiceRoll from "./DiceRoll";
@@ -63,7 +63,7 @@ function NumberGame() {
 
   // === Reset for new session ===
   const resetForNewSession = () => {
-    console.log("🔄 New session detected — resetting game state");
+    //console.log("🔄 New session detected — resetting game state");
     setChosen(0);
     setBids({});
     setAmount("");
@@ -96,7 +96,7 @@ function NumberGame() {
         toast.error("Failed to fetch wallet balance. Try again later!")
       }
     } catch (err) {
-      console.log(err);
+      //console.log(err);
       if(err?.status === 403) {
         navigate('/403');
       }
@@ -220,16 +220,20 @@ function NumberGame() {
 
     // Listen for bid confirmations
     socket.on("bid_accepted", ({ chosen_number, amount }) => {
-      console.log(`✅ Bid accepted for ${chosen_number}: Rs.${amount}`);
+      //console.log(`✅ Bid accepted for ${chosen_number}: Rs.${amount}`);
     });
 
     socket.on("bid_deleted", ({ chosen_number }) => {
-      console.log(`❌ Bid deleted for number ${chosen_number}`);
+      //console.log(`❌ Bid deleted for number ${chosen_number}`);
     });
 
-    socket.on("bid_rejected", (msg) => console.warn("Bid rejected:", msg));
-    socket.on("bid_delete_failed", (msg) =>
-      console.warn("Delete failed:", msg)
+    socket.on("bid_rejected", (msg) => 
+      //console.warn("Bid rejected:", msg)
+      toast.error(msg)
+    );
+    socket.on("bid_delete_failed", (msg) => 
+      //console.warn("Delete failed:", msg)
+      toast.error(msg)
     );
 
     // Cleanup on unmount
@@ -340,7 +344,7 @@ function NumberGame() {
       chosen_number,
       amount: Number(amt),
     };
-    console.log(payload);
+    //console.log(payload);
 
     // Emit bid to backend
     socket.emit("place_bid", payload);
@@ -636,8 +640,9 @@ function NumberGame() {
             </div>
             <div className="money-options">
               {
-                [100,200,300,400,500,1000,5000,10000,20000,50000].map((money) => (
+                [20,50,100,200,500,1000,5000,10000,20000,50000].map((money) => (
                   <div 
+                    key={money}
                     className={`
                       money-card ${money <= (walletBalance - getTotalBids() + (bids[chosen] || 0)) ? 'enable' : 'disable'}
                       ${money === amount && 'chosen'}

@@ -3,7 +3,6 @@ import logo from '../gallery/logo.svg'
 import { Link, useNavigate } from 'react-router-dom'
 import Validations from './Validations';
 import { loginAPI } from '../apis/auth/loginAPI';
-import Loader from '../components/CustomLoader';
 import { verifyToken } from '../apis/auth/verifyToken';
 import { toast } from 'react-toastify';
 
@@ -92,7 +91,7 @@ function Login() {
           setServerStatus(res.message);
         }
       } catch (err) {
-        console.error(err);
+        //console.error(err);
         if(err?.status === 403) {
           navigate('/403');
         }
@@ -111,22 +110,22 @@ function Login() {
                   : sessionStorage.getItem("token");
 
     if (!token) {
-      console.log('Token not available!');
+      //console.log('Token not available!');
       setIsLoading(false);
     } else {
       try {
         const res = await verifyToken({}, token);
-        console.log(res);
+        //console.log(res);
         if (res.status === 201) {
-          console.log('Token verified!');
+          //console.log('Token verified!');
           setIsLoading(false);
           navigate("/app/dashboard");
         } else {
-          console.log('Token not verified!');
+          //console.log('Token not verified!');
           setIsLoading(false);
         }
       } catch (err) {
-        console.error("Verification failed:", err);
+        //console.error("Verification failed:", err);
         setIsLoading(false);
         if(err?.status === 403) {
           navigate('/403');

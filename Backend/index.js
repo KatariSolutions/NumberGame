@@ -83,43 +83,43 @@ io.use(async (socket, next) => {
 })
 
 io.on("connection", (socket) => {
-  console.log(`Socket connected: ${socket.id} (user ${socket.user?.userId})`);
+  //console.log(`Socket connected: ${socket.id} (user ${socket.user?.userId})`);
   
   socket.on('join_session', (payload) => {
     // payload is optional; we will use socket.user.userId
-    console.log(`User ${socket.user.userId} joined the session ${socket.id}`);
+    //console.log(`User ${socket.user.userId} joined the session ${socket.id}`);
     socket.server.gameSession.handleJoin(socket, { userId: socket.user.userId });
   });
   
   socket.on('place_bid', (payload) => {
-    console.log(`User ${socket.user.userId} placed a bid`);
+    //console.log(`User ${socket.user.userId} placed a bid`);
     socket.server.gameSession.handlePlaceBid(socket, { ...payload, userId: socket.user.userId });
   });
   
   socket.on('update_bid', (payload) => {
-    console.log(`User ${socket.user.userId} updated bid`);
+    //console.log(`User ${socket.user.userId} updated bid`);
     socket.server.gameSession.handleUpdateBid(socket, payload);
   });
 
   socket.on("delete_bid", (payload) => {
-    console.log(`User ${socket.user.userId} deleted bid`)
+    //console.log(`User ${socket.user.userId} deleted bid`)
     socket.server.gameSession.handleDeleteBid(socket, payload);
   });
   
   socket.on('leave_session', () => {
-    console.log('leave_session');
-    console.log(`User ${socket.user.userId} left the session ${socket.id}`);
+    //console.log('leave_session');
+    //console.log(`User ${socket.user.userId} left the session ${socket.id}`);
     socket.server.gameSession.handleLeave(socket);
   });
 
   socket.on('admin_update_results', (payload) => {
-    console.log('Results updating by admin : ', payload);
+    //console.log('Results updating by admin : ', payload);
     socket.server.gameSession.updateResultsByAdmin(payload);
   })
   
   socket.on('disconnect', (reason) => {
-    console.log('disconnect');
-    console.log(`User ${socket.user.userId} disconnected from session, due to : ${reason}`);
+    //console.log('disconnect');
+    //console.log(`User ${socket.user.userId} disconnected from session, due to : ${reason}`);
     socket.server.gameSession.handleDisconnect(socket);
   });
 });

@@ -76,7 +76,7 @@ function VerifyOTP() {
 
       try{
           const res = await verifyAPI(data);
-          console.log(res);
+          //console.log(res);
           if(res.status === 201) {
             setSuccess(1);
             toast.success('Verification Successful!');
@@ -103,7 +103,7 @@ function VerifyOTP() {
             setServerStatus(res.message);
           }
       } catch (err) {
-        console.error(err);
+        //console.error(err);
         if(err?.status === 403) {
           navigate('/403');
         }

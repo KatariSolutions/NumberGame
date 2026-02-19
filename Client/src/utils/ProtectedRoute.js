@@ -32,7 +32,7 @@ const ProtectedRoute = ({ children }) => {
           setIsVerified(false);
         }
       } catch (err) {
-        console.log(err);
+        //console.log(err);
         setIsVerified(false);
         if(err?.status === 403) {
           navigate('/403');

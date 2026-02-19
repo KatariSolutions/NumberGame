@@ -75,7 +75,7 @@ export default function BankDetails() {
         toast.error(res.message)
       }
     } catch (err) {
-        console.error(err);
+        //console.error(err);
         if(err?.status === 403) {
             navigate('/403');
         }
@@ -117,7 +117,7 @@ export default function BankDetails() {
           toast.error(res.message)
         }
     } catch (err) {
-        console.error("Error updating bank details:", err);
+        //console.error("Error updating bank details:", err);
         toast.error(err.error || "Failed to update bank details. Please try again.");
         if(err?.status === 403) {
           navigate('/403');

@@ -5,7 +5,6 @@ import {
   IoMenu,
   IoPlayCircle,
   IoPersonCircle,
-  IoSettingsSharp,
   IoLogOut,
   IoWallet
 } from 'react-icons/io5';
@@ -22,7 +21,7 @@ function AppHeader() {
     const token = localStorage.getItem("token") || sessionStorage.getItem("token");
 
     if (!userId || !token) {
-      console.log("No userId or token found!");
+      //console.log("No userId or token found!");
       navigate("/auth/login");
       return;
     }

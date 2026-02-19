@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { toast } from "react-toastify";
-import { IoAdd, IoArrowDown, IoArrowUp, IoFilter,IoCameraOutline, IoClose } from "react-icons/io5";
+import { IoAdd, IoArrowDown, IoFilter,IoCameraOutline, IoClose } from "react-icons/io5";
 import { IoIosInformationCircleOutline } from "react-icons/io";
 import { getWalletBalanceAPI } from "../apis/wallet/getWalletBalanceAPI";
 import { getWalletTransactionsAPI } from "../apis/wallet/getWalletTransactionsAPI";
@@ -286,7 +286,7 @@ function Wallet() {
     
     try {
       const res = await rechargeWalletRequestAPI(formData, token);
-      console.log(res);
+      //console.log(res);
       if (res.status === 201) {
         toast.success("Request sent! will reflect in your wallet shortly.");
         setShowAddModal(false);
@@ -357,7 +357,7 @@ function Wallet() {
         <div className="wallet-actions">
           <button className="withdraw-btn" onClick={() => {
             if(!hasBankDetails){
-              toast.error('Please update your bank details.')
+              toast.error('Please update your bank details first.')
             } else {
               setShowWithdrawModal(true);
             }
@@ -472,7 +472,7 @@ function Wallet() {
             <div className="payment-steps">
               <div className="step step-1">
                 <div><span>1</span></div>
-                <p>Send money through any <b>UPI</b> App for the mobile number : <b>+91 xxxx xxxxx</b></p>
+                <p>Send money through any <b>UPI</b> App for the mobile number : <b>+91 96666 06335</b></p>
               </div>
               <div className="step step-2">
                 <div><span>2</span></div>

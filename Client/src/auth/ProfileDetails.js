@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import logo from '../gallery/logo.svg'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import Validations from './Validations';
-import { registerAPI } from '../apis/auth/registerAPI';
 import LoaderAnimation from '../components/LoaderAnimation';
 import { updateProfileDetailsAPI } from '../apis/user/updateProfileDetailsAPI';
 import { toast } from 'react-toastify';
@@ -91,7 +90,7 @@ function ProfileDetails() {
           setServerStatus(res.message);
         }
       } catch (err) {
-        console.error(err);
+        //console.error(err);
         if(err?.status === 403) {
           navigate('/403');
         }

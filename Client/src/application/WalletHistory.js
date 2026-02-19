@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { getWalletRequestsAPI } from '../apis/walletRequests/getWalletRequestsAPI';
 import { toast } from 'react-toastify';
-import { IoMdArrowRoundBack } from 'react-icons/io';
 
 function WalletHistory() {
     const navigate = useNavigate();

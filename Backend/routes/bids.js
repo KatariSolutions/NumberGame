@@ -21,7 +21,7 @@ bidsRouter.post('/getBidsbySession', async (req, res) => {
       .input('session_id', session_id)
       .input('user_id', user_id)
       .query(`
-        SELECT 
+        SELECT TOP 100 
           user_result_id, 
           session_id, 
           user_id, 
@@ -66,7 +66,7 @@ bidsRouter.post('/getBidsbyUserId', async (req, res) => {
     const result = await pool.request()
       .input('user_id', user_id)
       .query(`
-        SELECT SUR.session_id, 
+        SELECT TOP 100 SUR.session_id, 
         	SUM(SUR.amount) as bid_placed, 
         	SUM(SUR.payout) as payout, 
         	SUM(SUR.payout) - SUM(amount) as PnL,

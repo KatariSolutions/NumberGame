@@ -244,6 +244,52 @@ authRouter.post('/verify-otp', async (req, res) => {
   }
 });
 
+authRouter.post("/request-password-reset", forgotPasswordLimiter, async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // check email
+    const result = await pool.request()
+      .input("email", email)
+      .query("SELECT * FROM Users WHERE email=@email");
+
+    const user = result.recordset[0];
+    if (!user) return res.status(209).json({status : 209, message: "User Not Found! Please register first" });
+
+    // Extract userId from result
+    const userId = result.recordset[0].user_id;
+
+    // check pending request alreay exists
+    const check = await pool.request()
+        .input("user_id", userId)
+        .query(`
+          SELECT request_id FROM password_reset_requests WHERE user_id=@user_id AND status='PENDING'
+        `);
+    //console.log(check.recordset);
+    if (check.recordset.length > 0) {
+      return res.status(209).json({ status : 209, message: "Request already exists! Please wait" });
+    }
+
+    // disable login by is_active : 0
+    await pool.request()
+      .input('user_id', userId)
+      .query('UPDATE users SET is_active=0 WHERE user_id=@user_id');
+
+    // create new reset request
+    await pool.request()
+        .input("user_id", userId)
+        .query(`
+          INSERT INTO password_reset_requests (user_id, status, admin_note, created_at, updated_at)
+          VALUES (@user_id, 'PENDING', '', GETUTCDATE(), GETUTCDATE())
+        `);
+  
+    return res.status(201).json({status : 201, message: 'Request created successfully!'});
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({status: 500, message:'Server error'});
+  }
+})
+
 authRouter.post("/update-password", forgotPasswordLimiter, async (req, res) => {
   try{
     const { user_id, password } = req.body;

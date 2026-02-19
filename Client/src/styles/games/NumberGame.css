@@ -443,10 +443,8 @@
     cursor: pointer;
 }
 .game-board .game-board-number.chosen{
-    filter: brightness(0.5);
-}
-.game-board .game-board-number:hover{
-    filter: brightness(0.75);
+    background: #74b9ff;
+    color: #f5c542;
 }
 .game-board .game-board-number.winner{
   background: var(--bg-green-1);
