@@ -7,6 +7,7 @@ import { sendOtpEmail } from '../middleware/mailer.js';
 //import moment from 'moment';
 import moment from "moment-timezone";
 import { forgotPasswordLimiter, loginLimiter, registerLimiter, sendOtpLimiter } from '../middleware/rateLimiters.js';
+import Validations from '../middleware/validations.js';
 
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -19,6 +20,24 @@ authRouter.post("/register", registerLimiter, async (req, res) => {
     await poolConnect; 
 
     const { email, password, phone } = req.body;
+
+    // =========================
+    // SERVER VALIDATIONS
+    // =========================
+
+    if (!Validations.EmailValidation(email)) {
+      return res.status(209).json({ message: "Invalid email!" });
+    }
+
+    if (!Validations.PasswordValidation(password)) {
+      return res.status(209).json({
+        message: "Password must be 8+ chars with letter, number & special character"
+      });
+    }
+
+    if (!Validations.PhoneValidation(phone)) {
+      return res.status(209).json({ message: "Invalid phone number" });
+    }
 
     // 🔍 Check if mail already exists
     const checkEmail = await pool.request()
@@ -104,6 +123,10 @@ authRouter.post('/request-otp', sendOtpLimiter, async (req, res) => {
     await poolConnect; 
 
     const {email} = req.body;
+
+    if (!Validations.EmailValidation(email)) {
+      return res.status(209).json({ message: "Invalid email!" });
+    }
 
     // check email
     const result = await pool.request()
@@ -244,9 +267,44 @@ authRouter.post('/verify-otp', async (req, res) => {
   }
 });
 
+authRouter.get("/get-password-requests", async (req, res) => {
+  try {
+    await poolConnect;
+
+    const result = await pool.request()
+      .query(`
+        SELECT TOP 30 prr.request_id, 
+        	prr.user_id, 
+        	u.email,
+        	u.phone,
+        	prr.status, 
+        	prr.admin_note, 
+        	prr.created_at, 
+        	prr.updated_at
+        FROM password_reset_requests prr
+        LEFT JOIN users u on u.user_id = prr.user_id
+        WHERE status = 'PENDING'
+        ORDER BY prr.created_at
+      `);
+
+    return res.status(201).json({
+      status: 201,
+      message: 'success',
+      result: result.recordset
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({status: 500, message:'Server error'});
+  }
+})
+
 authRouter.post("/request-password-reset", forgotPasswordLimiter, async (req, res) => {
   try {
     const { email } = req.body;
+
+    if (!Validations.EmailValidation(email)) {
+      return res.status(209).json({ message: "Invalid email!" });
+    }
 
     // check email
     const result = await pool.request()
@@ -292,13 +350,36 @@ authRouter.post("/request-password-reset", forgotPasswordLimiter, async (req, re
 
 authRouter.post("/update-password", forgotPasswordLimiter, async (req, res) => {
   try{
+    await poolConnect;
+
     const { user_id, password } = req.body;
+
+    if (!Validations.PasswordValidation(password)) {
+      return res.status(209).json({
+        message: "Password must be 8+ chars with letter, number & special character"
+      });
+    }
+
+    if (!user_id || !password) {
+      return res.status(209).json({ message: "Missing required fields" });
+    }
 
     const hashed = await bcrypt.hash(password, 10);
     await pool.request()
       .input('user_id', user_id)
       .input('password_hash', hashed)
-      .query('UPDATE users SET password_hash=@password_hash WHERE user_id=@user_id;')
+      .query('UPDATE users SET password_hash=@password_hash,is_active=1 WHERE user_id=@user_id;')
+
+    // Update specific reset request
+    await pool.request()
+      .input("user_id", user_id)
+      .query(`
+        UPDATE password_reset_requests
+        SET status = 'COMPLETED',
+            updated_at = GETDATE()
+        WHERE user_id = @user_id
+          AND status = 'PENDING'
+      `);
 
     res.status(201).json({status : 201, message: "Password Updated"});
   } catch (err) {
@@ -312,6 +393,16 @@ authRouter.post("/login", loginLimiter, async (req, res) => {
     await poolConnect;
 
     const { email, password, isChecked } = req.body;
+
+    if (!Validations.EmailValidation(email)) {
+      return res.status(209).json({ message: "Invalid email!" });
+    }
+
+    if (!Validations.PasswordValidation(password)) {
+      return res.status(209).json({
+        message: "Password must be 8+ chars with letter, number & special character"
+      });
+    }
 
     const result = await pool.request()
       .input("email", email)
@@ -460,6 +551,16 @@ authRouter.post("/adminlogin", loginLimiter, async (req, res) => {
     await poolConnect;
 
     const { email, password, isChecked } = req.body;
+
+    if (!Validations.EmailValidation(email)) {
+      return res.status(209).json({ message: "Invalid email!" });
+    }
+
+    if (!Validations.PasswordValidation(password)) {
+      return res.status(209).json({
+        message: "Password must be 8+ chars with letter, number & special character"
+      });
+    }
 
     const result = await pool.request()
       .input("email", email)
